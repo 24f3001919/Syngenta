@@ -3,15 +3,15 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import OutcomeForm from '../../components/OutcomeForm';
 import { getGrowerBrief } from '../../api/visits';
-import { addToQueue } from '../../api/outcomes';
 import { useOfflineQueue } from '../../hooks/useOfflineQueue';
+import { useLang } from '../../context/LangContext';
 import type { GrowerBrief, OutcomeType } from '../../types';
-import { getErrorMessage } from '../../api/client';
 
 export default function GrowerDetail() {
   const { entity_id } = useParams<{ entity_id: string }>();
   const navigate = useNavigate();
   const { enqueue, sync } = useOfflineQueue();
+  const { t, lang } = useLang();
 
   const [brief, setBrief] = useState<GrowerBrief | null>(null);
   const [loading, setLoading] = useState(true);
@@ -21,11 +21,12 @@ export default function GrowerDetail() {
 
   useEffect(() => {
     if (!entity_id) return;
+    setLoading(true);
     getGrowerBrief(entity_id)
       .then(setBrief)
       .catch(() => setError('Failed to load grower brief.'))
       .finally(() => setLoading(false));
-  }, [entity_id]);
+  }, [entity_id, lang]);
 
   async function handleOutcomeSubmit(values: {
     rating: number;
@@ -41,10 +42,8 @@ export default function GrowerDetail() {
       visited_at: new Date().toISOString(),
     };
 
-    // Always add to queue first (works offline too)
     enqueue(outcome, brief?.name);
 
-    // Try immediate sync
     try {
       await sync();
     } catch {
@@ -57,7 +56,7 @@ export default function GrowerDetail() {
 
   if (loading) {
     return (
-      <Layout title="Grower Brief" showBack>
+      <Layout title={t('grower.ai_brief')} showBack>
         <div className="space-y-4 animate-pulse">
           <div className="card p-5 space-y-3">
             <div className="h-5 bg-sage-100 rounded w-2/3" />
@@ -73,10 +72,10 @@ export default function GrowerDetail() {
 
   if (error || !brief) {
     return (
-      <Layout title="Grower Brief" showBack>
+      <Layout title={t('grower.ai_brief')} showBack>
         <div className="card p-6 text-center border-clay-100 bg-clay-50">
           <p className="text-sm font-medium text-clay-700">{error || 'Grower not found.'}</p>
-          <button onClick={() => navigate(-1)} className="mt-3 btn-secondary text-xs">Go Back</button>
+          <button onClick={() => navigate(-1)} className="mt-3 btn-secondary text-xs">{t('grower.go_back')}</button>
         </div>
       </Layout>
     );
@@ -84,7 +83,6 @@ export default function GrowerDetail() {
 
   return (
     <Layout title={brief.name} showBack>
-      {/* Grower info card */}
       <div className="card p-5 mb-4">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 rounded-2xl bg-forest-100 flex items-center justify-center shrink-0">
@@ -122,7 +120,6 @@ export default function GrowerDetail() {
         </div>
       </div>
 
-      {/* AI Briefing */}
       <div className="card p-5 mb-4">
         <div className="flex items-center gap-2 mb-3">
           <div className="w-5 h-5 rounded bg-forest-700 flex items-center justify-center shrink-0">
@@ -130,31 +127,36 @@ export default function GrowerDetail() {
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
             </svg>
           </div>
-          <h3 className="text-xs font-bold text-forest-800 uppercase tracking-wider">AI Visit Brief</h3>
+          <h3 className="text-xs font-bold text-forest-800 uppercase tracking-wider">{t('grower.ai_brief')}</h3>
         </div>
         <p className="text-sm text-forest-800 leading-relaxed">{brief.briefing}</p>
       </div>
 
-      {/* NBA Actions */}
       {brief.nba_actions.length > 0 && (
         <div className="card p-5 mb-4">
           <h3 className="text-xs font-bold text-forest-800 uppercase tracking-wider mb-3">
-            Recommended Actions
+            {t('grower.actions')}
           </h3>
           <div className="space-y-2">
-            {brief.nba_actions.map((action, i) => (
-              <div key={i} className="flex items-start gap-3">
-                <div className="w-5 h-5 rounded-full bg-forest-100 flex items-center justify-center shrink-0 mt-0.5">
-                  <span className="text-[10px] font-bold text-forest-700">{i + 1}</span>
+            {brief.nba_actions.map((action, i) => {
+              const code = typeof action === 'string' ? action : (action as { action?: string }).action ?? '';
+              const label = t('nba.' + code);
+              const display = label === 'nba.' + code
+                ? code.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+                : label;
+              return (
+                <div key={i} className="flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-forest-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="text-[10px] font-bold text-forest-700">{i + 1}</span>
+                  </div>
+                  <p className="text-sm text-forest-800">{display}</p>
                 </div>
-                <p className="text-sm text-forest-800">{action}</p>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* Outcome submitted confirmation */}
       {submitted && (
         <div className="card p-4 mb-4 bg-forest-50 border-forest-200">
           <div className="flex items-center gap-3">
@@ -164,17 +166,16 @@ export default function GrowerDetail() {
               </svg>
             </div>
             <div>
-              <p className="text-sm font-semibold text-forest-800">Outcome logged</p>
-              <p className="text-xs text-forest-600">Will sync automatically when connected.</p>
+              <p className="text-sm font-semibold text-forest-800">{t('grower.logged')}</p>
+              <p className="text-xs text-forest-600">{t('grower.will_sync')}</p>
             </div>
           </div>
         </div>
       )}
 
-      {/* Log outcome form */}
       {showForm ? (
         <div className="card p-5">
-          <h3 className="section-title mb-4">Log Outcome</h3>
+          <h3 className="section-title mb-4">{t('grower.log_outcome')}</h3>
           <OutcomeForm
             entityName={brief.name}
             onSubmit={handleOutcomeSubmit}
@@ -186,7 +187,7 @@ export default function GrowerDetail() {
           onClick={() => setShowForm(true)}
           className="btn-primary w-full"
         >
-          {submitted ? 'Log Another Outcome' : 'Log Visit Outcome'}
+          {submitted ? t('grower.log_another') : t('grower.log_outcome')}
         </button>
       )}
     </Layout>
