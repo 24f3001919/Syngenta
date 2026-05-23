@@ -133,7 +133,7 @@ export default function Login() {
           </svg>
         </div>
         <h1 className="font-display text-2xl font-bold text-forest-900">Field Force Intelligence</h1>
-        <p className="text-sm text-sage-500 mt-1">Syngenta — Bikaner Territory</p>
+        <p className="text-sm text-sage-500 mt-1">Syngenta Field Force Intelligence</p>
       </div>
 
       <div className="w-full max-w-sm">
