@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
 import { ThemeProvider } from './context/ThemeContext'
+import { LangProvider } from './context/LangContext'
 import { OfflineQueueProvider } from './hooks/useOfflineQueue'
 import { useAuth } from './context/AuthContext'
 import ProtectedRoute from './components/ProtectedRoute'
@@ -36,35 +37,37 @@ function RoleRedirect() {
 export default function App() {
   return (
     <ThemeProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <OfflineQueueProvider>
-            <Routes>
-              {/* Root redirect */}
-              <Route path="/" element={<RoleRedirect />} />
-              {/* Public */}
-              <Route path="/login"    element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              {/* Rep routes */}
-              <Route element={<ProtectedRoute requiredRole="rep" />}>
-                <Route path="/today"              element={<Today />} />
-                <Route path="/grower/:entity_id"  element={<GrowerDetail />} />
-                <Route path="/anomalies"          element={<Anomalies />} />
-                <Route path="/devices"            element={<Devices />} />
-              </Route>
-              {/* Manager routes */}
-              <Route element={<ProtectedRoute requiredRole="manager" />}>
-                <Route path="/manager"                    element={<Overview />} />
-                <Route path="/manager/reps"               element={<Reps />} />
-                <Route path="/manager/reps/:rep_id"       element={<RepDetail />} />
-                <Route path="/manager/weights"            element={<WeightsHistory />} />
-              </Route>
-              {/* Catch-all */}
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </OfflineQueueProvider>
-        </AuthProvider>
-      </BrowserRouter>
+      <LangProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <OfflineQueueProvider>
+              <Routes>
+                {/* Root redirect */}
+                <Route path="/" element={<RoleRedirect />} />
+                {/* Public */}
+                <Route path="/login"    element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                {/* Rep routes */}
+                <Route element={<ProtectedRoute requiredRole="rep" />}>
+                  <Route path="/today"              element={<Today />} />
+                  <Route path="/grower/:entity_id"  element={<GrowerDetail />} />
+                  <Route path="/anomalies"          element={<Anomalies />} />
+                  <Route path="/devices"            element={<Devices />} />
+                </Route>
+                {/* Manager routes */}
+                <Route element={<ProtectedRoute requiredRole="manager" />}>
+                  <Route path="/manager"                    element={<Overview />} />
+                  <Route path="/manager/reps"               element={<Reps />} />
+                  <Route path="/manager/reps/:rep_id"       element={<RepDetail />} />
+                  <Route path="/manager/weights"            element={<WeightsHistory />} />
+                </Route>
+                {/* Catch-all */}
+                <Route path="*" element={<Navigate to="/" replace />} />
+              </Routes>
+            </OfflineQueueProvider>
+          </AuthProvider>
+        </BrowserRouter>
+      </LangProvider>
     </ThemeProvider>
   )
 }
