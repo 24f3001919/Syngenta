@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from 'react';
 import {
   getQueue,
   addToQueue,
@@ -6,9 +6,9 @@ import {
   markSynced,
   markFailed,
   clearSynced,
+  syncOutcomes,
   type QueuedOutcome,
 } from '../api/outcomes';
-import { syncOutcomes } from '../api/outcomes';
 import { useDevice } from './useDevice';
 import type { OutcomeRecord } from '../types';
 
@@ -18,7 +18,19 @@ export interface SyncToast {
   message: string;
 }
 
-export function useOfflineQueue() {
+interface OfflineQueueContextValue {
+  pendingCount: number;
+  syncing: boolean;
+  toasts: SyncToast[];
+  dismissToast: (id: string) => void;
+  enqueue: (outcome: OutcomeRecord, entity_name?: string) => void;
+  sync: () => Promise<void>;
+  refreshCount: () => void;
+}
+
+const OfflineQueueContext = createContext<OfflineQueueContextValue | null>(null);
+
+export function OfflineQueueProvider({ children }: { children: ReactNode }) {
   const { deviceId, deviceName, devicePlatform } = useDevice();
   const [pendingCount, setPendingCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
@@ -55,25 +67,18 @@ export function useOfflineQueue() {
   const sync = useCallback(async () => {
     const pending = getQueue().filter((o: QueuedOutcome) => !o.synced);
     if (pending.length === 0) return;
-
     setSyncing(true);
     try {
       const result = await syncOutcomes(deviceId, deviceName, devicePlatform, pending);
-
-      // Mark successes
       const successIds = result.results
         .filter((r) => r.status === 'created' || r.status === 'duplicate')
         .map((r) => r.client_outcome_id);
       if (successIds.length > 0) markSynced(successIds);
-
-      // Mark failures
       const failIds = result.results
         .filter((r) => r.status === 'failed')
         .map((r) => r.client_outcome_id);
       if (failIds.length > 0) markFailed(failIds);
-
       clearSynced();
-
       if (result.created_count > 0) {
         addToast('success', `${result.created_count} outcome${result.created_count > 1 ? 's' : ''} synced successfully.`);
       }
@@ -91,12 +96,37 @@ export function useOfflineQueue() {
     }
   }, [deviceId, deviceName, devicePlatform, addToast, refreshCount]);
 
-  // Auto-sync on load if there are pending items
   useEffect(() => {
     if (getPendingCount() > 0) {
       sync();
     }
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  return { pendingCount, syncing, toasts, dismissToast, enqueue, sync, refreshCount };
+  // Auto-sync when the browser regains connectivity
+  useEffect(() => {
+    function handleOnline() {
+      if (getPendingCount() > 0) {
+        sync();
+      }
+    }
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [sync]);
+
+
+  return (
+    <OfflineQueueContext.Provider
+      value={{ pendingCount, syncing, toasts, dismissToast, enqueue, sync, refreshCount }}
+    >
+      {children}
+    </OfflineQueueContext.Provider>
+  );
+}
+
+export function useOfflineQueue(): OfflineQueueContextValue {
+  const ctx = useContext(OfflineQueueContext);
+  if (!ctx) {
+    throw new Error('useOfflineQueue must be used within OfflineQueueProvider');
+  }
+  return ctx;
 }
