@@ -2,15 +2,8 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import { getRepDetails } from '../../api/manager';
+import { useLang } from '../../context/LangContext';
 import type { RepDetails, OutcomeType, AnomalySeverity } from '../../types';
-
-const OUTCOME_LABELS: Record<OutcomeType, { label: string; style: string }> = {
-  sale:             { label: 'Sale',            style: 'badge-green' },
-  follow_up_needed:    { label: 'Follow-up',          style: 'badge-yellow' },
-  no_interest:         { label: 'No Interest',        style: 'badge-gray' },
-  complaint:           { label: 'Complaint',          style: 'badge-red' },
-  complaint_resolved:  { label: 'Complaint Resolved', style: 'badge-green' }
-};
 
 function severityDot(s: AnomalySeverity) {
   switch (s) {
@@ -37,36 +30,67 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const days = Math.floor(diff / 86_400_000);
-  const hours = Math.floor(diff / 3_600_000);
-  if (days > 0) return `${days}d ago`;
-  if (hours > 0) return `${hours}h ago`;
-  return 'Just now';
-}
-
 type Tab = 'priorities' | 'outcomes' | 'anomalies';
 
 export default function RepDetail() {
   const { rep_id } = useParams<{ rep_id: string }>();
   const navigate = useNavigate();
+  const { t, lang } = useLang();
   const [details, setDetails] = useState<RepDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [tab, setTab] = useState<Tab>('priorities');
 
+  const OUTCOME_LABELS: Record<OutcomeType, { label: string; style: string }> = {
+    sale:               { label: t('outcome.sale'),         style: 'badge-green' },
+    follow_up_needed:   { label: t('outcome.follow_up'),    style: 'badge-yellow' },
+    no_interest:        { label: t('outcome.no_interest'),  style: 'badge-gray' },
+    complaint:          { label: t('outcome.complaint'),    style: 'badge-red' },
+    complaint_resolved: { label: t('outcome.complaint') + ' ✓', style: 'badge-green' }
+  };
+
+  function translateReason(raw: string): string {
+    if (!raw) return '';
+    if (raw.startsWith('reason.') || raw.startsWith('anomaly.') || raw.startsWith('nba.') || raw.startsWith('override.')) {
+      const looked = t(raw);
+      if (looked !== raw) return looked;
+    }
+    const asReason = t('reason.' + raw);
+    if (asReason !== 'reason.' + raw) return asReason;
+    const asAnomaly = t('anomaly.' + raw);
+    if (asAnomaly !== 'anomaly.' + raw) return asAnomaly;
+    const asOverride = t('override.' + raw);
+    if (asOverride !== 'override.' + raw) return asOverride;
+    return raw;
+  }
+
+  function timeAgo(dateStr: string): string {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const days = Math.floor(diff / 86_400_000);
+    const hours = Math.floor(diff / 3_600_000);
+    if (days > 0) return `${days}d ${t('time.ago')}`;
+    if (hours > 0) return `${hours}h ${t('time.ago')}`;
+    return t('time.just_now');
+  }
+
   useEffect(() => {
     if (!rep_id) return;
+    setLoading(true);
     getRepDetails(rep_id)
       .then(setDetails)
       .catch(() => setError('Failed to load rep details.'))
       .finally(() => setLoading(false));
-  }, [rep_id]);
+  }, [rep_id, lang]);
+
+  const tabLabels: Record<Tab, string> = {
+    priorities: t('rep.priorities'),
+    outcomes:   t('rep.outcomes'),
+    anomalies:  t('rep.anomalies'),
+  };
 
   if (loading) {
     return (
-      <Layout title="Rep Details" showBack>
+      <Layout title={t('reps.title')} showBack>
         <div className="space-y-4 animate-pulse">
           <div className="card p-5 h-24" />
           <div className="card p-5 h-10" />
@@ -80,10 +104,10 @@ export default function RepDetail() {
 
   if (error || !details) {
     return (
-      <Layout title="Rep Details" showBack>
+      <Layout title={t('reps.title')} showBack>
         <div className="card p-6 text-center border-clay-100 bg-clay-50">
           <p className="text-sm font-medium text-clay-700">{error || 'Rep not found.'}</p>
-          <button onClick={() => navigate(-1)} className="mt-3 btn-secondary text-xs">Go Back</button>
+          <button onClick={() => navigate(-1)} className="mt-3 btn-secondary text-xs">{t('grower.go_back')}</button>
         </div>
       </Layout>
     );
@@ -93,7 +117,6 @@ export default function RepDetail() {
 
   return (
     <Layout title={rep.name} showBack>
-      {/* Rep profile card */}
       <div className="card p-5 mb-4">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 rounded-2xl bg-forest-100 flex items-center justify-center shrink-0">
@@ -107,26 +130,24 @@ export default function RepDetail() {
           </div>
         </div>
 
-        {/* Rep stats */}
         <div className="grid grid-cols-3 gap-3 mt-4 pt-4 border-t border-forest-50">
           <div className="text-center">
             <p className="text-xl font-bold font-display text-forest-800">{rep.outcomes_last_30d}</p>
-            <p className="text-[10px] text-sage-400 font-semibold uppercase tracking-wide mt-0.5">Outcomes</p>
+            <p className="text-[10px] text-sage-400 font-semibold uppercase tracking-wide mt-0.5">{t('reps.outcomes')}</p>
           </div>
           <div className="text-center border-x border-forest-50">
             <p className="text-xl font-bold font-display text-forest-800">{rep.avg_rating.toFixed(1)}</p>
-            <p className="text-[10px] text-sage-400 font-semibold uppercase tracking-wide mt-0.5">Avg Rating</p>
+            <p className="text-[10px] text-sage-400 font-semibold uppercase tracking-wide mt-0.5">{t('reps.avg_rating')}</p>
           </div>
           <div className="text-center">
             <p className="text-xl font-bold font-display text-forest-800">{rep.total_growers}</p>
-            <p className="text-[10px] text-sage-400 font-semibold uppercase tracking-wide mt-0.5">Growers</p>
+            <p className="text-[10px] text-sage-400 font-semibold uppercase tracking-wide mt-0.5">{t('reps.growers')}</p>
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-1 bg-white border border-forest-100 rounded-xl p-1 mb-5 shadow-card">
-        {(['priorities', 'outcomes', 'anomalies'] as Tab[]).map((t) => {
+        {(['priorities', 'outcomes', 'anomalies'] as Tab[]).map((tk) => {
           const counts: Record<Tab, number> = {
             priorities: priorities.length,
             outcomes: recent_outcomes.length,
@@ -134,18 +155,18 @@ export default function RepDetail() {
           };
           return (
             <button
-              key={t}
-              onClick={() => setTab(t)}
+              key={tk}
+              onClick={() => setTab(tk)}
               className={`flex-1 rounded-lg py-2 text-xs font-semibold capitalize transition-colors ${
-                tab === t ? 'bg-forest-700 text-white' : 'text-sage-500 hover:text-forest-700'
+                tab === tk ? 'bg-forest-700 text-white' : 'text-sage-500 hover:text-forest-700'
               }`}
             >
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-              {counts[t] > 0 && (
+              {tabLabels[tk]}
+              {counts[tk] > 0 && (
                 <span className={`ml-1 px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                  tab === t ? 'bg-forest-600 text-white' : 'bg-sage-100 text-sage-500'
+                  tab === tk ? 'bg-forest-600 text-white' : 'bg-sage-100 text-sage-500'
                 }`}>
-                  {counts[t]}
+                  {counts[tk]}
                 </span>
               )}
             </button>
@@ -153,12 +174,11 @@ export default function RepDetail() {
         })}
       </div>
 
-      {/* Priorities tab */}
       {tab === 'priorities' && (
         <div className="space-y-3">
           {priorities.length === 0 && (
             <div className="card p-8 text-center">
-              <p className="text-sm text-sage-500">No priorities assigned.</p>
+              <p className="text-sm text-sage-500">{t('rep.no_priorities')}</p>
             </div>
           )}
           {priorities.map((g) => (
@@ -173,7 +193,7 @@ export default function RepDetail() {
                   {g.reasons.length > 0 && (
                     <div className="flex flex-wrap gap-1 mt-1">
                       {g.reasons.slice(0, 2).map((r, i) => (
-                        <span key={i} className="badge-gray text-xs">{r}</span>
+                        <span key={i} className="badge-gray text-xs">{translateReason(r)}</span>
                       ))}
                     </div>
                   )}
@@ -192,12 +212,11 @@ export default function RepDetail() {
         </div>
       )}
 
-      {/* Outcomes tab */}
       {tab === 'outcomes' && (
         <div className="space-y-3">
           {recent_outcomes.length === 0 && (
             <div className="card p-8 text-center">
-              <p className="text-sm text-sage-500">No recent outcomes.</p>
+              <p className="text-sm text-sage-500">{t('rep.no_outcomes')}</p>
             </div>
           )}
           {recent_outcomes.map((o) => {
@@ -223,7 +242,6 @@ export default function RepDetail() {
         </div>
       )}
 
-      {/* Anomalies tab */}
       {tab === 'anomalies' && (
         <div className="space-y-3">
           {anomalies.length === 0 && (
@@ -231,7 +249,7 @@ export default function RepDetail() {
               <svg className="w-8 h-8 text-sage-300 mx-auto mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p className="text-sm text-sage-500">No anomalies for this rep.</p>
+              <p className="text-sm text-sage-500">{t('rep.no_anomalies')}</p>
             </div>
           )}
           {anomalies.map((a, i) => (
@@ -241,10 +259,10 @@ export default function RepDetail() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-0.5 flex-wrap">
                     <span className="font-semibold text-sm text-forest-900">{a.name}</span>
-                    <span className="text-xs font-medium text-sage-500 capitalize">{a.severity}</span>
+                    <span className="text-xs font-medium text-sage-500 capitalize">{t('anomaly.' + a.severity)}</span>
                   </div>
                   <p className="text-xs font-medium text-forest-700 mb-0.5">{a.anomaly_type}</p>
-                  <p className="text-xs text-sage-500 leading-relaxed">{a.description}</p>
+                  <p className="text-xs text-sage-500 leading-relaxed">{translateReason(a.description)}</p>
                   <p className="text-[11px] text-sage-400 mt-1">{timeAgo(a.detected_at)}</p>
                 </div>
               </div>
