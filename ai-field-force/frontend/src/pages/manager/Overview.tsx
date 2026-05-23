@@ -4,6 +4,7 @@ import Layout from '../../components/Layout';
 import HealthScoreCard from '../../components/HealthScoreCard';
 import MetricCard from '../../components/MetricCard';
 import { getManagerOverview, getTopPriorities } from '../../api/manager';
+import { useLang } from '../../context/LangContext';
 import type { ManagerOverview, TopPriority } from '../../types';
 
 function vpsColor(score: number): string {
@@ -13,19 +14,22 @@ function vpsColor(score: number): string {
 }
 
 export default function Overview() {
+  const { t, lang } = useLang();
   const [overview, setOverview] = useState<ManagerOverview | null>(null);
   const [priorities, setPriorities] = useState<TopPriority[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    setLoading(true);
     Promise.all([getManagerOverview(), getTopPriorities(5)])
       .then(([ov, prio]) => { setOverview(ov); setPriorities(prio); })
       .catch(() => setError('Failed to load overview.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [lang]);
 
-  const todayStr = new Date().toLocaleDateString('en-IN', {
+  const localeMap: Record<string, string> = { en: 'en-IN', hi: 'hi-IN', gu: 'gu-IN', bn: 'bn-IN' };
+  const todayStr = new Date().toLocaleDateString(localeMap[lang] ?? 'en-IN', {
     weekday: 'long', day: 'numeric', month: 'long',
   });
 
@@ -60,18 +64,16 @@ export default function Overview() {
     <Layout>
       <div className="mb-5">
         <p className="text-xs font-semibold text-sage-500 uppercase tracking-widest mb-1">{todayStr}</p>
-        <h1 className="page-header">Territory Overview</h1>
+        <h1 className="page-header">{t('manager.overview')}</h1>
       </div>
 
-      {/* Health score */}
       <div className="mb-4">
         <HealthScoreCard score={overview.territory_health_score} />
       </div>
 
-      {/* KPI grid */}
       <div className="grid grid-cols-2 gap-3 mb-6">
         <MetricCard
-          label="Total Reps"
+          label={t('manager.total_reps')}
           value={overview.total_reps}
           accent="green"
           icon={
@@ -81,7 +83,7 @@ export default function Overview() {
           }
         />
         <MetricCard
-          label="Growers"
+          label={t('manager.growers')}
           value={overview.total_growers}
           accent="sage"
           icon={
@@ -91,7 +93,7 @@ export default function Overview() {
           }
         />
         <MetricCard
-          label="Outcomes (30d)"
+          label={t('manager.outcomes_30d')}
           value={overview.outcomes_last_30d}
           accent="harvest"
           icon={
@@ -101,9 +103,9 @@ export default function Overview() {
           }
         />
         <MetricCard
-          label="Avg Rating"
+          label={t('manager.avg_rating')}
           value={overview.avg_rating.toFixed(1)}
-          sub="out of 5.0"
+          sub="/ 5.0"
           accent="green"
           icon={
             <svg className="w-6 h-6" viewBox="0 0 20 20" fill="currentColor">
@@ -113,21 +115,19 @@ export default function Overview() {
         />
         {overview.high_priority_count > 0 && (
           <MetricCard
-            label="High Priority"
+            label={t('manager.high_priority')}
             value={overview.high_priority_count}
-            sub="growers need attention"
             accent="clay"
           />
         )}
       </div>
 
-      {/* Top priorities table */}
       {priorities.length > 0 && (
         <div className="card overflow-hidden mb-4">
           <div className="px-4 py-3 border-b border-forest-100 flex items-center justify-between">
-            <h2 className="text-sm font-bold text-forest-900">Top Priorities Across Territory</h2>
+            <h2 className="text-sm font-bold text-forest-900">{t('manager.top_priorities')}</h2>
             <Link to="/manager/reps" className="text-xs text-forest-600 font-semibold hover:underline">
-              View all reps →
+              {t('manager.view_all')}
             </Link>
           </div>
           <div className="divide-y divide-forest-50">
