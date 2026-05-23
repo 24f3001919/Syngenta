@@ -4,21 +4,25 @@ import PriorityCard from '../../components/PriorityCard';
 import { getTodayPriorities } from '../../api/visits';
 import type { PriorityGrower } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { useLang } from '../../context/LangContext';
 
 export default function Today() {
   const { rep } = useAuth();
+  const { t, lang } = useLang();
   const [growers, setGrowers] = useState<PriorityGrower[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
+    setLoading(true);
     getTodayPriorities()
       .then(setGrowers)
       .catch(() => setError('Failed to load priorities. Check your connection.'))
       .finally(() => setLoading(false));
-  }, []);
+  }, [lang]);
 
-  const todayStr = new Date().toLocaleDateString('en-IN', {
+  const localeMap: Record<string, string> = { en: 'en-IN', hi: 'hi-IN', gu: 'gu-IN', bn: 'bn-IN' };
+  const todayStr = new Date().toLocaleDateString(localeMap[lang] ?? 'en-IN', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -26,42 +30,39 @@ export default function Today() {
 
   return (
     <Layout>
-      {/* Page header — slightly larger heading on desktop */}
       <div className="mb-5 md:mb-8">
         <p className="text-xs font-semibold text-sage-500 uppercase tracking-widest mb-1">{todayStr}</p>
-        <h1 className="page-header md:text-3xl">Good morning, {rep?.name?.split(' ')[0]}.</h1>
+        <h1 className="page-header md:text-3xl">{t('today.greeting')}, {rep?.name?.split(' ')[0]}.</h1>
         <p className="text-sm text-sage-500 mt-1">
           {growers.length > 0
-            ? `${growers.length} growers ranked by visit priority score`
+            ? `${growers.length} ${t('today.growers_ranked')}`
             : loading
-            ? 'Loading your priorities...'
-            : 'No priorities for today.'}
+            ? t('today.loading')
+            : t('today.none')}
         </p>
       </div>
 
-      {/* Summary strip — wider gaps + bigger numbers on desktop */}
       {!loading && growers.length > 0 && (
         <div className="flex gap-3 md:gap-4 mb-5 md:mb-8">
           <div className="flex-1 card px-4 py-3 md:py-5 bg-clay-50 border-clay-100">
-            <p className="text-xs text-clay-600 font-semibold uppercase tracking-wide">High Priority</p>
+            <p className="text-xs text-clay-600 font-semibold uppercase tracking-wide">{t('today.high_priority')}</p>
             <p className="text-xl md:text-3xl font-bold font-display text-clay-700">
               {growers.filter((g) => g.vps_score >= 80).length}
             </p>
           </div>
           <div className="flex-1 card px-4 py-3 md:py-5 bg-harvest-50 border-harvest-100">
-            <p className="text-xs text-harvest-600 font-semibold uppercase tracking-wide">Alerts</p>
+            <p className="text-xs text-harvest-600 font-semibold uppercase tracking-wide">{t('today.alerts')}</p>
             <p className="text-xl md:text-3xl font-bold font-display text-harvest-700">
               {growers.reduce((s, g) => s + g.anomaly_count, 0)}
             </p>
           </div>
           <div className="flex-1 card px-4 py-3 md:py-5 bg-forest-50 border-forest-100">
-            <p className="text-xs text-forest-600 font-semibold uppercase tracking-wide">Total</p>
+            <p className="text-xs text-forest-600 font-semibold uppercase tracking-wide">{t('today.total')}</p>
             <p className="text-xl md:text-3xl font-bold font-display text-forest-700">{growers.length}</p>
           </div>
         </div>
       )}
 
-      {/* Loading skeleton — also responsive grid */}
       {loading && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           {[...Array(6)].map((_, i) => (
@@ -83,7 +84,6 @@ export default function Today() {
         </div>
       )}
 
-      {/* Error state */}
       {error && !loading && (
         <div className="card p-6 text-center border-clay-100 bg-clay-50">
           <svg className="w-8 h-8 text-clay-400 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
@@ -94,12 +94,11 @@ export default function Today() {
             onClick={() => { setError(''); setLoading(true); getTodayPriorities().then(setGrowers).catch(() => setError('Failed to load priorities.')).finally(() => setLoading(false)); }}
             className="mt-3 btn-secondary text-xs"
           >
-            Retry
+            {t('today.retry')}
           </button>
         </div>
       )}
 
-      {/* Priority list — 1 col mobile, 2 col desktop */}
       {!loading && !error && growers.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
           {growers.map((grower) => (
@@ -108,14 +107,13 @@ export default function Today() {
         </div>
       )}
 
-      {/* Empty state */}
       {!loading && !error && growers.length === 0 && (
         <div className="card p-8 text-center">
           <svg className="w-10 h-10 text-sage-300 mx-auto mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
             <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p className="text-sm font-semibold text-forest-900">All caught up!</p>
-          <p className="text-xs text-sage-500 mt-1">No growers to visit today.</p>
+          <p className="text-sm font-semibold text-forest-900">{t('today.all_done')}</p>
+          <p className="text-xs text-sage-500 mt-1">{t('today.no_growers')}</p>
         </div>
       )}
     </Layout>
