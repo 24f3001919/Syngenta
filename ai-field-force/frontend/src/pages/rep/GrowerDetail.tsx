@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import Layout from '../../components/Layout';
 import OutcomeForm from '../../components/OutcomeForm';
 import { getGrowerBrief } from '../../api/visits';
+import { getNdviDetail, getPestDetail, type NdviDetail, type PestDetail } from '../../api/signals';
 import { useOfflineQueue } from '../../hooks/useOfflineQueue';
 import { useLang } from '../../context/LangContext';
 import type { GrowerBrief, OutcomeType } from '../../types';
@@ -14,6 +15,9 @@ export default function GrowerDetail() {
   const { t, lang } = useLang();
 
   const [brief, setBrief] = useState<GrowerBrief | null>(null);
+  const [ndvi, setNdvi] = useState<NdviDetail | null>(null);
+  const [pest, setPest] = useState<PestDetail | null>(null);
+  const [signalsLoading, setSignalsLoading] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -26,6 +30,14 @@ export default function GrowerDetail() {
       .then(setBrief)
       .catch(() => setError('Failed to load grower brief.'))
       .finally(() => setLoading(false));
+  }, [entity_id, lang]);
+
+  useEffect(() => {
+    if (!entity_id) return;
+    setSignalsLoading(true);
+    Promise.all([getNdviDetail(entity_id), getPestDetail(entity_id)])
+      .then(([n, p]) => { setNdvi(n); setPest(p); })
+      .finally(() => setSignalsLoading(false));
   }, [entity_id, lang]);
 
   async function handleOutcomeSubmit(values: {
@@ -130,6 +142,94 @@ export default function GrowerDetail() {
           <h3 className="text-xs font-bold text-forest-800 uppercase tracking-wider">{t('grower.ai_brief')}</h3>
         </div>
         <p className="text-sm text-forest-800 leading-relaxed">{brief.briefing}</p>
+      </div>
+
+      {/* Satellite NDVI widget */}
+      <div className="card p-5 mb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-5 h-5 rounded bg-forest-700 flex items-center justify-center shrink-0">
+            <span className="text-white text-[10px]">🛰</span>
+          </div>
+          <h3 className="text-xs font-bold text-forest-800 uppercase tracking-wider">{t('widget.satellite_title')}</h3>
+        </div>
+        {signalsLoading ? (
+          <p className="text-xs text-sage-500">{t('widget.loading')}</p>
+        ) : ndvi ? (
+          <div className="space-y-2 text-xs">
+            {ndvi.stress_score !== null && (
+              <div>
+                <div className="flex justify-between mb-1">
+                  <span className="text-sage-600">{t('widget.stress_score')}</span>
+                  <span className="font-semibold text-forest-900">{(ndvi.stress_score * 100).toFixed(0)}%</span>
+                </div>
+                <div className="h-1.5 bg-sage-100 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full ${
+                      ndvi.stress_score >= 0.6 ? 'bg-clay-500' : ndvi.stress_score >= 0.4 ? 'bg-harvest-500' : 'bg-forest-500'
+                    }`}
+                    style={{ width: `${Math.min(100, ndvi.stress_score * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              {ndvi.scene_date && (
+                <div>
+                  <p className="text-[10px] uppercase text-sage-400 font-semibold tracking-wide">{t('widget.scene_date')}</p>
+                  <p className="text-forest-800">{ndvi.scene_date}</p>
+                </div>
+              )}
+              {ndvi.cloud_cover_pct !== null && (
+                <div>
+                  <p className="text-[10px] uppercase text-sage-400 font-semibold tracking-wide">{t('widget.cloud_cover')}</p>
+                  <p className="text-forest-800">{(ndvi.cloud_cover_pct * 100).toFixed(1)}%</p>
+                </div>
+              )}
+            </div>
+            <p className="text-[10px] text-sage-400 pt-1 border-t border-forest-50">{ndvi.source}</p>
+          </div>
+        ) : (
+          <p className="text-xs text-sage-500">{t('widget.unavailable')}</p>
+        )}
+      </div>
+
+      {/* Regional pest advisory widget */}
+      <div className="card p-5 mb-4">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="w-5 h-5 rounded bg-clay-600 flex items-center justify-center shrink-0">
+            <span className="text-white text-[10px]">🐛</span>
+          </div>
+          <h3 className="text-xs font-bold text-forest-800 uppercase tracking-wider">{t('widget.pest_title')}</h3>
+        </div>
+        {signalsLoading ? (
+          <p className="text-xs text-sage-500">{t('widget.loading')}</p>
+        ) : pest ? (
+          <div className="space-y-2 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="text-sage-600">{t('widget.severity')}</span>
+              <span className={`badge-${
+                pest.severity === 'high' ? 'red' : pest.severity === 'medium' ? 'yellow' : 'green'
+              } capitalize`}>
+                {pest.severity}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <div>
+                <p className="text-[10px] uppercase text-sage-400 font-semibold tracking-wide">{t('widget.district')}</p>
+                <p className="text-forest-800 capitalize">{pest.district}</p>
+              </div>
+              <div>
+                <p className="text-[10px] uppercase text-sage-400 font-semibold tracking-wide">{t('widget.source')}</p>
+                <p className="text-forest-800 text-[11px]">
+                  {pest.is_live ? `🟢 ${t('widget.live')}` : `🔵 ${t('widget.baseline')}`}
+                </p>
+              </div>
+            </div>
+            <p className="text-[10px] text-sage-400 pt-1 border-t border-forest-50">{pest.source}</p>
+          </div>
+        ) : (
+          <p className="text-xs text-sage-500">{t('widget.unavailable')}</p>
+        )}
       </div>
 
       {brief.nba_actions.length > 0 && (
