@@ -89,7 +89,7 @@ class VisitService:
             item["visit_sequence_position"] = i + 1
 
         return ranked
-    def get_visit_brief(self, entity_id: str, rep_id: str) -> dict:
+    def get_visit_brief(self, entity_id: str, rep_id: str, lang: str = "en") -> dict:   
         db = SessionLocal()
 
         entity = db.query(FarmerRetailer).filter(
@@ -116,7 +116,7 @@ class VisitService:
         }
 
         nba_actions = get_next_best_actions(context)
-        briefing    = run_briefing_chain(context, nba_actions)
+        briefing    = run_briefing_chain(context, nba_actions, lang=lang)
 
         return {
             "entity_id":     entity_id,
