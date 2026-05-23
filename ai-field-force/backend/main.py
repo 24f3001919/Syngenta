@@ -23,6 +23,7 @@ from models.db.farmers import FarmerRetailer
 from services.auth_service import AuthService
 from db.seed_demo_outcomes import seed_demo_outcomes
 from db.seed_data import seed as seed_growers
+from models.db.signal import Signal as _Signal
 
 app = FastAPI(title="Field Force Copilot", version="0.8.0")
 
@@ -103,18 +104,31 @@ def startup():
         # ---------- Seed growers + signals if DB is empty ----------
         # Idempotent: skips if growers already present, runs full seed if not.
         # This is what populates the priority list on Render's ephemeral disk.
+        # ---------- Seed growers + signals if DB is empty OR stale ----------
+        # Trigger reseed if growers exist but their signal payloads lack newer keys.
+        # This handles schema migrations on Render's ephemeral disk without manual wipes.
+
         existing_growers = db.query(FarmerRetailer).count()
-        if existing_growers == 0:
-            print("⚠ No growers found — running full grower + signal seed...")
-            db.close()  # seed() opens its own session
+        needs_reseed = existing_growers == 0
+
+        if not needs_reseed:
+            # Check if signal payload schema is current (has ndvi_stress)
+            sample = db.query(_Signal).filter(_Signal.signal_type == "composite").first()
+            if sample and isinstance(sample.payload, dict) and "ndvi_stress" not in sample.payload:
+                print("⚠ Signal payloads missing ndvi_stress key — forcing reseed for schema sync")
+                needs_reseed = True
+
+        if needs_reseed:
+            print("⚠ Running full grower + signal seed...")
+            db.close()
             try:
                 seed_growers()
                 print("✓ Growers + signals seeded")
             except Exception as e:
                 print(f"⚠ Grower seed failed: {e}")
-            db = SessionLocal()  # reopen for outcomes seed below
+            db = SessionLocal()
         else:
-            print(f"✓ Skipping grower seed — {existing_growers} growers already in DB")
+            print(f"✓ Skipping grower seed — {existing_growers} growers already in DB with current schema")
 
         # ---------- Seed demo outcomes ----------
         seed_result = seed_demo_outcomes(db)
