@@ -19,8 +19,10 @@ from models.db.auth_identity import AuthIdentity
 from models.db.outcome import Outcome
 from models.db.device import Device
 from models.db.weight_history import WeightHistory
+from models.db.farmers import FarmerRetailer
 from services.auth_service import AuthService
 from db.seed_demo_outcomes import seed_demo_outcomes
+from db.seed_data import seed as seed_growers
 
 app = FastAPI(title="Field Force Copilot", version="0.8.0")
 
@@ -36,8 +38,6 @@ app.add_middleware(
 
 
 # ---------- Demo rep accounts ----------
-# Order matters: index 0 = the "primary" demo rep used in the demo script.
-# Each entry is (email, password, rep_id, name)
 DEMO_LOGIN_REPS = [
     ("rep@syngenta.com",  "syngenta123", "REP_0338", "Demo Rep"),
     ("rep2@syngenta.com", "syngenta123", "REP_0472", "Sikar Rep"),
@@ -45,7 +45,6 @@ DEMO_LOGIN_REPS = [
     ("rep4@syngenta.com", "syngenta123", "REP_0426", "Meerut Rep"),
 ]
 
-# All 10 reps the manager oversees (must match db/seed_data.py:TARGET_REPS)
 MANAGER_REP_IDS = [
     "REP_0338", "REP_0472", "REP_0373", "REP_0394", "REP_0317",
     "REP_0426", "REP_0325", "REP_0372", "REP_0105", "REP_0129",
@@ -54,8 +53,8 @@ MANAGER_REP_IDS = [
 
 @app.on_event("startup")
 def startup():
-    # Wipe + recreate the tables we own. Signals / farmers / visits are NOT
-    # dropped — they're populated by db.seed_data (run separately).
+    # Wipe + recreate the tables we own. Signals / farmers / visits are
+    # managed by db.seed_data and seeded below if missing.
     WeightHistory.__table__.drop(bind=engine, checkfirst=True)
     Outcome.__table__.drop(bind=engine, checkfirst=True)
     Device.__table__.drop(bind=engine, checkfirst=True)
@@ -71,7 +70,6 @@ def startup():
 
         # ---------- Seed rep accounts ----------
         for email, password, rep_id, name in DEMO_LOGIN_REPS:
-            # Each rep account links to its own Syngenta rep_id
             phone = "9999999999" if rep_id == "REP_0338" else None
             svc.ensure_seed_rep(
                 db,
@@ -101,6 +99,22 @@ def startup():
         )
         print(f"✓ Demo manager ensured (manager@syngenta.com / manager123)")
         print(f"   Manages {len(MANAGER_REP_IDS)} reps across 5+ states")
+
+        # ---------- Seed growers + signals if DB is empty ----------
+        # Idempotent: skips if growers already present, runs full seed if not.
+        # This is what populates the priority list on Render's ephemeral disk.
+        existing_growers = db.query(FarmerRetailer).count()
+        if existing_growers == 0:
+            print("⚠ No growers found — running full grower + signal seed...")
+            db.close()  # seed() opens its own session
+            try:
+                seed_growers()
+                print("✓ Growers + signals seeded")
+            except Exception as e:
+                print(f"⚠ Grower seed failed: {e}")
+            db = SessionLocal()  # reopen for outcomes seed below
+        else:
+            print(f"✓ Skipping grower seed — {existing_growers} growers already in DB")
 
         # ---------- Seed demo outcomes ----------
         seed_result = seed_demo_outcomes(db)
