@@ -1,38 +1,32 @@
-def resolve_reason_template(signal: str, value) -> str | None:
+def resolve_reason_code(signal: str, value) -> str | None:
+    """Return a stable reason code (not display text). Frontend translates."""
     if signal == "pest_alert_severity":
         if value >= 0.65:
-            return "Critical pest outbreak active — crop at risk"
+            return "pest_critical"
         if value >= 0.3:
-            return "Pest alert reported — monitor closely"
-
+            return "pest_alert"
     elif signal == "inventory_shortage_level":
         if value >= 0.8:
-            return "Inventory critically low — stockout imminent"
+            return "inventory_critical"
         if value >= 0.5:
-            return "Inventory running low — reorder needed"
-
+            return "inventory_low"
     elif signal == "days_since_last_visit":
         if value >= 1.0:
-            return "Overdue visit — not contacted in 21+ days"
+            return "visit_overdue_21"
         if value >= 0.67:
-            return "Visit recommended — not contacted in 14+ days"
-
+            return "visit_due_14"
     elif signal == "complaint_open":
         if value == 1.0:
-            return "Open complaint requires immediate resolution"
-
+            return "complaint_open"
     elif signal == "competitor_activity":
         if value == 1.0:
-            return "Competitor activity spotted — retention risk"
-
+            return "competitor_spotted"
     elif signal == "weather_risk_score":
         if value >= 0.7:
-            return "High weather risk — crop may need urgent attention"
-
+            return "weather_high_risk"
     elif signal == "crop_stage_sensitivity":
         if value >= 0.7:
-            return "Critical crop stage — high receptivity to recommendations"
-
+            return "crop_stage_critical"
     return None
 
 
@@ -41,19 +35,21 @@ def extract_top_reasons(
     weights: dict,
     overrides: list[str]
 ) -> list[str]:
+    """Returns up to 3 stable reason codes. Frontend translates via LangContext."""
     reasons = list(overrides)
-
     contributions = {
         signal: features.get(signal, 0.0) * weight
         for signal, weight in weights.items()
     }
     top_signals = sorted(contributions, key=contributions.get, reverse=True)
-
     for signal in top_signals:
         if len(reasons) >= 3:
             break
-        reason = resolve_reason_template(signal, features.get(signal, 0.0))
-        if reason:
-            reasons.append(reason)
-
+        code = resolve_reason_code(signal, features.get(signal, 0.0))
+        if code:
+            reasons.append(code)
     return reasons
+
+
+# Backwards-compat wrapper, in case anything still imports the old name
+resolve_reason_template = resolve_reason_code
