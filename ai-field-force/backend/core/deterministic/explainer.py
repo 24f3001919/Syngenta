@@ -27,6 +27,11 @@ def resolve_reason_code(signal: str, value) -> str | None:
     elif signal == "crop_stage_sensitivity":
         if value >= 0.7:
             return "crop_stage_critical"
+    elif signal == "ndvi_stress":
+        if value >= 0.6:
+            return "ndvi_high_stress"
+        if value >= 0.4:
+            return "ndvi_moderate_stress"
     return None
 
 
@@ -48,6 +53,9 @@ REASON_FAMILY = {
     # Inventory family
     "inventory_critical":            "inventory",
     "inventory_low":                 "inventory",
+    # NDVI family
+    "ndvi_high_stress":              "ndvi",
+    "ndvi_moderate_stress":          "ndvi",
 }
 
 # Within each family, lower index = higher priority (kept; rest dropped).
@@ -56,6 +64,7 @@ FAMILY_PRIORITY = {
     "visit":     ["override.visit_overdue_30", "visit_overdue_21", "visit_due_14"],
     "complaint": ["override.complaint_immediate", "complaint_open"],
     "inventory": ["inventory_critical", "inventory_low"],
+    "ndvi":      ["ndvi_high_stress", "ndvi_moderate_stress"],
 }
 
 
@@ -93,8 +102,15 @@ def extract_top_reasons(
 ) -> list[str]:
     """Returns up to 3 stable reason codes, semantically deduped.
     If override.pest_outbreak_region AND reason.pest_critical both fire, only the
-    stronger (override) is kept."""
+    stronger (override) is kept. NDVI severe stress is prioritized regardless of
+    weight contribution so satellite data always surfaces when concerning."""
     raw = list(overrides)
+
+    # Fast-path: surface high-severity NDVI even when other signals dominate
+    ndvi_val = features.get("ndvi_stress", 0.0)
+    if ndvi_val >= 0.6:
+        raw.append("ndvi_high_stress")
+
     contributions = {
         signal: features.get(signal, 0.0) * weight
         for signal, weight in weights.items()
@@ -108,7 +124,6 @@ def extract_top_reasons(
     # Dedupe by semantic family, then trim to 3
     deduped = _dedupe_by_family(raw)
     return deduped[:3]
-
 
 # Backwards-compat wrapper
 resolve_reason_template = resolve_reason_code
