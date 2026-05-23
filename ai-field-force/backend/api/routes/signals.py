@@ -109,10 +109,10 @@ def pest_detail(
     detail = fetch_pest_detail(entity.region or "")
     if not detail:
         raise HTTPException(
-            status_code=503,
+            status_code=422,
             detail=(
-                f"No pest advisory found for region '{entity.region}'. "
-                "ICAR sources may be temporarily unavailable."
+                f"Could not parse region '{entity.region}' to a known district. "
+                "Region must be of the form 'District, State'."
             ),
         )
     return {"entity_id": entity_id, "name": entity.name, "region": entity.region, **detail}
