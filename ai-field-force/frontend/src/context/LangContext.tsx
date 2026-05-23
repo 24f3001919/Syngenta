@@ -268,6 +268,21 @@ const en: Record<string, string> = {
   'signal.crop_stage':          'Crop Stage',
   'signal.revenue_potential':   'Revenue Potential',
   'signal.competitor_activity': 'Competitor Activity',
+  'reason.ndvi_high_stress':     'Satellite shows severe crop stress',
+  'reason.ndvi_moderate_stress': 'Satellite shows moderate crop stress',
+  // Grower detail data source widgets
+  'widget.satellite_title':    'Satellite Crop Health',
+  'widget.pest_title':         'Regional Pest Advisory',
+  'widget.scene_date':         'Scene date',
+  'widget.cloud_cover':        'Cloud cover',
+  'widget.source':             'Source',
+  'widget.stress_score':       'Stress score',
+  'widget.severity':           'Severity',
+  'widget.district':           'District',
+  'widget.live':               'Live',
+  'widget.baseline':           'Baseline',
+  'widget.unavailable':        'Data unavailable',
+  'widget.loading':            'Loading...',
 }
 
 // ─── Hindi (from Kunal's PR, retained verbatim) ─────────────────────
@@ -452,6 +467,20 @@ const hi: Record<string, string> = {
   'signal.crop_stage':          'फसल चरण',
   'signal.revenue_potential':   'राजस्व संभावना',
   'signal.competitor_activity': 'प्रतिस्पर्धी गतिविधि',
+  'reason.ndvi_high_stress':     'उपग्रह डेटा — गंभीर फसल तनाव',
+  'reason.ndvi_moderate_stress': 'उपग्रह डेटा — मध्यम फसल तनाव',
+  'widget.satellite_title':    'उपग्रह फसल स्वास्थ्य',
+  'widget.pest_title':         'क्षेत्रीय कीट सलाह',
+  'widget.scene_date':         'दृश्य तिथि',
+  'widget.cloud_cover':        'बादल आवरण',
+  'widget.source':             'स्रोत',
+  'widget.stress_score':       'तनाव स्कोर',
+  'widget.severity':           'गंभीरता',
+  'widget.district':           'जिला',
+  'widget.live':               'लाइव',
+  'widget.baseline':           'आधार रेखा',
+  'widget.unavailable':        'डेटा उपलब्ध नहीं',
+  'widget.loading':            'लोड हो रहा है...',
 }
 
 // ─── Gujarati ─────────────────────────────────────────────────────────
@@ -636,6 +665,20 @@ const gu: Record<string, string> = {
   'signal.crop_stage':          'પાક તબક્કો',
   'signal.revenue_potential':   'આવક સંભાવના',
   'signal.competitor_activity': 'સ્પર્ધક પ્રવૃત્તિ',
+  'reason.ndvi_high_stress':     'ઉપગ્રહ ડેટા — ગંભીર પાક તાણ',
+  'reason.ndvi_moderate_stress': 'ઉપગ્રહ ડેટા — મધ્યમ પાક તાણ',
+  'widget.satellite_title':    'ઉપગ્રહ પાક આરોગ્ય',
+  'widget.pest_title':         'પ્રાદેશિક જીવાત સલાહ',
+  'widget.scene_date':         'દૃશ્ય તારીખ',
+  'widget.cloud_cover':        'વાદળ આવરણ',
+  'widget.source':             'સ્ત્રોત',
+  'widget.stress_score':       'તાણ સ્કોર',
+  'widget.severity':           'ગંભીરતા',
+  'widget.district':           'જિલ્લો',
+  'widget.live':               'લાઇવ',
+  'widget.baseline':           'આધારરેખા',
+  'widget.unavailable':        'ડેટા ઉપલબ્ધ નથી',
+  'widget.loading':            'લોડ થઈ રહ્યું છે...',
 }
 
 // ─── Bengali ──────────────────────────────────────────────────────────
@@ -820,5 +863,19 @@ const bn: Record<string, string> = {
   'signal.crop_stage':          'ফসল পর্যায়',
   'signal.revenue_potential':   'রাজস্ব সম্ভাবনা',
   'signal.competitor_activity': 'প্রতিযোগী কার্যকলাপ',
+  'reason.ndvi_high_stress':     'উপগ্রহ ডেটা — গুরুতর ফসল চাপ',
+  'reason.ndvi_moderate_stress': 'উপগ্রহ ডেটা — মাঝারি ফসল চাপ',
+  'widget.satellite_title':    'উপগ্রহ ফসল স্বাস্থ্য',
+  'widget.pest_title':         'আঞ্চলিক কীট পরামর্শ',
+  'widget.scene_date':         'দৃশ্য তারিখ',
+  'widget.cloud_cover':        'মেঘ আবরণ',
+  'widget.source':             'উৎস',
+  'widget.stress_score':       'চাপ স্কোর',
+  'widget.severity':           'তীব্রতা',
+  'widget.district':           'জেলা',
+  'widget.live':               'লাইভ',
+  'widget.baseline':           'বেসলাইন',
+  'widget.unavailable':        'ডেটা উপলব্ধ নয়',
+  'widget.loading':            'লোড হচ্ছে...',
 }
 const DICTIONARIES: Record<Lang, Record<string, string>> = { en, hi, gu, bn }
