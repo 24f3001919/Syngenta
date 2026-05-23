@@ -57,6 +57,26 @@ DISTRICT_COORDS = {
 
 WEATHER_FALLBACK_SCORE = 0.5
 
+def _seed_ndvi_stress(entity_id: str, district: str, pest_severity: str) -> float:
+    """
+    Deterministic NDVI crop-stress seed value (0.0-0.9).
+    Same input always produces same output (no randomness between reseeds).
+    Higher pest severity in district → slightly higher stress.
+    Used as a baseline until /signals/refresh fetches real Sentinel-2 data.
+    """
+    # Hash entity + district for stable per-grower value
+    base = (sum(ord(c) for c in entity_id) + sum(ord(c) for c in district)) % 100
+    stress = base / 100.0  # 0.0 to 0.99
+
+    # Nudge based on pest pressure in the region
+    if pest_severity == "high":
+        stress = min(0.9, stress + 0.2)
+    elif pest_severity == "medium":
+        stress = min(0.8, stress + 0.1)
+    elif pest_severity == "none":
+        stress = max(0.05, stress - 0.2)
+
+    return round(stress, 2)
 
 def load_rep_data():
     """Returns {rep_id: {full row dict including parsed tehsil_list}}"""
@@ -221,6 +241,8 @@ def seed_rep(db, rep_id, rep_row, last_visit_date, weather_cache):
                 "weather_components":       weather_summary["components"] if weather_summary else None,
                 "inventory_shortage_level": inventory_shortage,
                 "inventory_pct":            inventory_pct,
+                "ndvi_stress":              _seed_ndvi_stress(entity.id, rep_district, pest_severity),
+                "ndvi_source":              "seeded_baseline",
                 "crop_stage":               crop,
                 "crop_stage_sensitivity":   crop_sensitivity,
                 "competitor_activity":      competitor_activity,
