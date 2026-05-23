@@ -1,18 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import Header from '../../components/Header';
+import { useLang } from '../../context/LangContext';
 import { getWeightsHistory, type WeightsSnapshot } from '../../api/manager';
-
-const SIGNAL_LABELS: Record<string, string> = {
-  pest_alert_severity: 'Pest Alert',
-  inventory_shortage_level: 'Inventory Shortage',
-  days_since_last_visit: 'Days Since Visit',
-  weather_risk_score: 'Weather Risk',
-  complaint_open: 'Open Complaint',
-  crop_stage_sensitivity: 'Crop Stage',
-  revenue_potential: 'Revenue Potential',
-  competitor_activity: 'Competitor Activity',
-};
 
 function fmt(val: number) {
   return (val * 100).toFixed(1) + '%';
@@ -35,8 +25,22 @@ function DeltaBadge({ value }: { value: number }) {
 }
 
 function SnapshotCard({ snap, index }: { snap: WeightsSnapshot; index: number }) {
+  const { t, lang } = useLang();
   const [expanded, setExpanded] = useState(index === 0);
-  const date = new Date(snap.created_at).toLocaleString('en-IN', {
+
+  const SIGNAL_LABELS: Record<string, string> = {
+    pest_alert_severity:       t('signal.pest_alert'),
+    inventory_shortage_level:  t('signal.inventory_shortage'),
+    days_since_last_visit:     t('signal.days_since_visit'),
+    weather_risk_score:        t('signal.weather_risk'),
+    complaint_open:            t('signal.complaint_open'),
+    crop_stage_sensitivity:    t('signal.crop_stage'),
+    revenue_potential:         t('signal.revenue_potential'),
+    competitor_activity:       t('signal.competitor_activity'),
+  };
+
+  const localeMap: Record<string, string> = { en: 'en-IN', hi: 'hi-IN', gu: 'gu-IN', bn: 'bn-IN' };
+  const date = new Date(snap.created_at).toLocaleString(localeMap[lang] ?? 'en-IN', {
     day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
   });
   const hasDelta = snap.delta && Object.keys(snap.delta).length > 0;
@@ -44,7 +48,6 @@ function SnapshotCard({ snap, index }: { snap: WeightsSnapshot; index: number })
 
   return (
     <div className="card overflow-hidden">
-      {/* Card header */}
       <button
         onClick={() => setExpanded((p) => !p)}
         className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-forest-50 transition-colors"
@@ -57,11 +60,13 @@ function SnapshotCard({ snap, index }: { snap: WeightsSnapshot; index: number })
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-sm font-semibold text-forest-900">
-              {isManual ? 'Manual recalibration' : `Outcome #${snap.outcome_id} logged`}
+              {isManual
+                ? t('trail.manual_recalibration')
+                : `${t('trail.outcome_label')} #${snap.outcome_id} ${t('trail.logged_suffix')}`}
             </span>
             {hasDelta && (
               <span className="text-xs text-sage-500">
-                {Object.keys(snap.delta!).length} signal{Object.keys(snap.delta!).length > 1 ? 's' : ''} shifted
+                {Object.keys(snap.delta!).length} {t('trail.signals_shifted')}
               </span>
             )}
           </div>
@@ -75,13 +80,11 @@ function SnapshotCard({ snap, index }: { snap: WeightsSnapshot; index: number })
         </svg>
       </button>
 
-      {/* Expanded body */}
       {expanded && (
         <div className="border-t border-forest-50 px-4 py-3 space-y-3">
-          {/* Delta highlights */}
           {hasDelta && (
             <div>
-              <p className="text-xs font-semibold text-sage-500 uppercase tracking-wide mb-2">What changed</p>
+              <p className="text-xs font-semibold text-sage-500 uppercase tracking-wide mb-2">{t('trail.what_changed')}</p>
               <div className="space-y-1.5">
                 {Object.entries(snap.delta!).map(([key, val]) => (
                   <div key={key} className="flex items-center justify-between">
@@ -93,9 +96,8 @@ function SnapshotCard({ snap, index }: { snap: WeightsSnapshot; index: number })
             </div>
           )}
 
-          {/* Full weights */}
           <div>
-            <p className="text-xs font-semibold text-sage-500 uppercase tracking-wide mb-2">All weights at this point</p>
+            <p className="text-xs font-semibold text-sage-500 uppercase tracking-wide mb-2">{t('trail.all_weights')}</p>
             <div className="space-y-2">
               {Object.entries(snap.weights)
                 .sort(([, a], [, b]) => b - a)
@@ -128,6 +130,7 @@ function SnapshotCard({ snap, index }: { snap: WeightsSnapshot; index: number })
 }
 
 export default function WeightsHistory() {
+  const { t } = useLang();
   const [snapshots, setSnapshots] = useState<WeightsSnapshot[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -140,41 +143,41 @@ export default function WeightsHistory() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-forest-50">
-      <Header title="Learning Trail" showBack />
+    <div className="min-h-screen bg-forest-50 dark:bg-forest-950">
+      <Header title={t('trail.title')} showBack />
       <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-        {/* Page intro */}
         <div className="card px-4 py-3">
-          <p className="text-sm text-forest-800 font-semibold">How the model learns</p>
-          <p className="text-xs text-sage-500 mt-0.5">
-            Each time an outcome is logged, signal weights are recalculated. This trail shows every adjustment — which signals gained importance, which lost it, and what triggered the change.
-          </p>
+          <p className="text-sm text-forest-800 dark:text-forest-200 font-semibold">{t('trail.how_learns')}</p>
+          <p className="text-xs text-sage-500 mt-0.5">{t('trail.intro')}</p>
         </div>
 
-        {/* Link back to overview */}
         <div className="flex justify-end">
-          <Link to="/manager" className="text-xs text-forest-600 font-semibold hover:underline">
-            ← Back to Overview
+          <Link to="/manager" className="text-xs text-forest-600 dark:text-forest-300 font-semibold hover:underline">
+            {t('trail.back_to_overview')}
           </Link>
         </div>
 
         {loading && (
-          <div className="flex justify-center py-12">
-            <div className="w-7 h-7 border-2 border-forest-700 border-t-transparent rounded-full animate-spin" />
+          <div className="space-y-3 animate-pulse">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="card p-4 h-16" />
+            ))}
           </div>
         )}
 
         {error && (
-          <div className="card px-4 py-3 text-sm text-clay-600">{error}</div>
-        )}
-
-        {!loading && !error && snapshots.length === 0 && (
-          <div className="card px-4 py-6 text-center text-sm text-sage-500">
-            No weight snapshots yet. Log some outcomes to see the model learn.
+          <div className="card p-6 text-center border-clay-100 bg-clay-50">
+            <p className="text-sm font-medium text-clay-700">{error}</p>
           </div>
         )}
 
-        {snapshots.map((snap, i) => (
+        {!loading && !error && snapshots.length === 0 && (
+          <div className="card p-8 text-center">
+            <p className="text-sm text-sage-500">{t('trail.empty')}</p>
+          </div>
+        )}
+
+        {!loading && !error && snapshots.map((snap, i) => (
           <SnapshotCard key={snap.id} snap={snap} index={i} />
         ))}
       </div>
