@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import Layout from '../../components/Layout';
 import { getDevices, revokeDevice } from '../../api/devices';
 import { useDevice } from '../../hooks/useDevice';
+import { useLang } from '../../context/LangContext';
 import type { Device } from '../../types';
 
 function platformIcon(platform: string) {
@@ -13,23 +14,24 @@ function platformIcon(platform: string) {
   return '🌐';
 }
 
-function timeAgo(dateStr: string): string {
-  const diff = Date.now() - new Date(dateStr).getTime();
-  const minutes = Math.floor(diff / 60_000);
-  const hours = Math.floor(diff / 3_600_000);
-  const days = Math.floor(diff / 86_400_000);
-  if (minutes < 5) return 'Active now';
-  if (hours < 1) return `${minutes}m ago`;
-  if (days < 1) return `${hours}h ago`;
-  return `${days}d ago`;
-}
-
 export default function Devices() {
   const { deviceId } = useDevice();
+  const { t } = useLang();
   const [devices, setDevices] = useState<Device[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [revoking, setRevoking] = useState<string | null>(null);
+
+  function timeAgo(dateStr: string): string {
+    const diff = Date.now() - new Date(dateStr).getTime();
+    const minutes = Math.floor(diff / 60_000);
+    const hours = Math.floor(diff / 3_600_000);
+    const days = Math.floor(diff / 86_400_000);
+    if (minutes < 5) return t('time.active_now');
+    if (hours < 1) return `${minutes}m ${t('time.ago')}`;
+    if (days < 1) return `${hours}h ${t('time.ago')}`;
+    return `${days}d ${t('time.ago')}`;
+  }
 
   useEffect(() => {
     getDevices()
@@ -39,7 +41,7 @@ export default function Devices() {
   }, []);
 
   async function handleRevoke(device_id: string) {
-    if (!confirm('Revoke this device? It will be signed out.')) return;
+    if (!confirm(t('devices.revoke_confirm'))) return;
     setRevoking(device_id);
     try {
       await revokeDevice(device_id);
@@ -54,20 +56,17 @@ export default function Devices() {
   return (
     <Layout>
       <div className="mb-5">
-        <h1 className="page-header">Your Devices</h1>
-        <p className="text-sm text-sage-500 mt-1">
-          Devices logged into your account. Revoke any you don't recognize.
-        </p>
+        <h1 className="page-header">{t('devices.title')}</h1>
+        <p className="text-sm text-sage-500 mt-1">{t('devices.subtitle')}</p>
       </div>
 
-      {/* Current device indicator */}
       <div className="card p-4 mb-5 bg-forest-50 border-forest-200">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-forest-100 flex items-center justify-center shrink-0">
             <span className="w-2.5 h-2.5 rounded-full bg-forest-500" />
           </div>
           <div>
-            <p className="text-xs font-semibold text-forest-800">Current device ID</p>
+            <p className="text-xs font-semibold text-forest-800">{t('devices.current_id')}</p>
             <p className="text-[11px] text-forest-600 font-mono break-all">{deviceId}</p>
           </div>
         </div>
@@ -99,7 +98,7 @@ export default function Devices() {
         <div className="space-y-3">
           {devices.length === 0 && (
             <div className="card p-8 text-center">
-              <p className="text-sm text-sage-500">No devices found.</p>
+              <p className="text-sm text-sage-500">{t('reps.none')}</p>
             </div>
           )}
           {devices.map((device) => {
@@ -119,11 +118,11 @@ export default function Devices() {
                         {device.device_name}
                       </span>
                       {isCurrent && (
-                        <span className="badge-green shrink-0">This device</span>
+                        <span className="badge-green shrink-0">{t('devices.this_device')}</span>
                       )}
                     </div>
                     <p className="text-xs text-sage-500 capitalize">{device.device_platform}</p>
-                    <p className="text-xs text-sage-400 mt-0.5">Last seen {timeAgo(device.last_seen)}</p>
+                    <p className="text-xs text-sage-400 mt-0.5">{timeAgo(device.last_seen)}</p>
                   </div>
                   {!isCurrent && (
                     <button
@@ -131,7 +130,7 @@ export default function Devices() {
                       disabled={revoking === device.device_id}
                       className="btn-danger text-xs py-1.5 px-3 shrink-0"
                     >
-                      {revoking === device.device_id ? '...' : 'Revoke'}
+                      {revoking === device.device_id ? '...' : t('devices.revoke')}
                     </button>
                   )}
                 </div>
