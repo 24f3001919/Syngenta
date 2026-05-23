@@ -1,25 +1,19 @@
 import { useState } from 'react';
+import { useLang } from '../context/LangContext';
 import type { OutcomeType } from '../types';
 
-const ACTIONS = [
-  'Demonstrated product',
-  'Shared brochure',
-  'Collected soil sample',
-  'Discussed crop plan',
-  'Resolved complaint',
-  'Offered trial pack',
-  'Scheduled follow-up',
-  'Processed order',
+// Action chips: value goes to backend (stays English for data consistency),
+// key is used to look up the translated label.
+const ACTIONS: Array<{ value: string; key: string }> = [
+  { value: 'Demonstrated product',   key: 'action.demonstrated_product' },
+  { value: 'Shared brochure',        key: 'action.shared_brochure' },
+  { value: 'Collected soil sample',  key: 'action.collected_soil_sample' },
+  { value: 'Discussed crop plan',    key: 'action.discussed_crop_plan' },
+  { value: 'Resolved complaint',     key: 'action.resolved_complaint' },
+  { value: 'Offered trial pack',     key: 'action.offered_trial_pack' },
+  { value: 'Scheduled follow-up',    key: 'action.scheduled_follow_up' },
+  { value: 'Processed order',        key: 'action.processed_order' },
 ];
-
-const OUTCOME_LABELS: Record<OutcomeType, string> = {
-  sale: 'Sale Completed',
-  follow_up_needed: 'Follow-up Needed',
-  no_interest: 'No Interest',
-  complaint: 'Complaint',
-  complaint_resolved: 'Complaint Resolved',
-};
-
 interface FormValues {
   rating: number;
   outcome_type: OutcomeType;
@@ -64,12 +58,21 @@ function StarRating({ value, onChange }: { value: number; onChange: (v: number) 
 }
 
 export default function OutcomeForm({ entityName, onSubmit, onCancel }: Props) {
+  const { t } = useLang();
   const [rating, setRating] = useState(0);
   const [outcomeType, setOutcomeType] = useState<OutcomeType>('follow_up_needed');
   const [actionsTaken, setActionsTaken] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  const OUTCOME_LABELS: Record<OutcomeType, string> = {
+    sale: t('outcome.sale'),
+    follow_up_needed: t('outcome.follow_up'),
+    no_interest: t('outcome.no_interest'),
+    complaint: t('outcome.complaint'),
+    complaint_resolved: t('outcome.complaint') + ' ✓',
+  };
 
   function toggleAction(action: string) {
     setActionsTaken((prev) =>
@@ -79,7 +82,7 @@ export default function OutcomeForm({ entityName, onSubmit, onCancel }: Props) {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (rating === 0) { setError('Please select a rating.'); return; }
+    if (rating === 0) { setError(t('outcome.rating_err')); return; }
     setError('');
     setLoading(true);
     try {
@@ -99,26 +102,24 @@ export default function OutcomeForm({ entityName, onSubmit, onCancel }: Props) {
             {entityName.charAt(0)}
           </div>
           <div>
-            <p className="text-xs text-sage-500 font-medium">Logging outcome for</p>
+            <p className="text-xs text-sage-500 font-medium">{t('outcome.logging_for')}</p>
             <p className="text-sm font-semibold text-forest-900">{entityName}</p>
           </div>
         </div>
       )}
 
-      {/* Rating */}
       <div>
-        <label className="label">Visit Rating</label>
+        <label className="label">{t('outcome.rating')}</label>
         <StarRating value={rating} onChange={setRating} />
         {rating > 0 && (
           <p className="text-xs text-sage-500 mt-1">
-            {['', 'Very poor', 'Poor', 'Average', 'Good', 'Excellent'][rating]}
+            {['', t('outcome.rate_1'), t('outcome.rate_2'), t('outcome.rate_3'), t('outcome.rate_4'), t('outcome.rate_5')][rating]}
           </p>
         )}
       </div>
 
-      {/* Outcome type */}
       <div>
-        <label className="label">Outcome</label>
+        <label className="label">{t('outcome.outcome')}</label>
         <div className="grid grid-cols-2 gap-2">
           {(Object.entries(OUTCOME_LABELS) as [OutcomeType, string][]).map(([type, label]) => (
             <button
@@ -141,35 +142,33 @@ export default function OutcomeForm({ entityName, onSubmit, onCancel }: Props) {
         </div>
       </div>
 
-      {/* Actions taken */}
       <div>
-        <label className="label">Actions Taken</label>
+        <label className="label">{t('outcome.actions')}</label>
         <div className="flex flex-wrap gap-2">
           {ACTIONS.map((action) => (
             <button
-              key={action}
+              key={action.value}
               type="button"
-              onClick={() => toggleAction(action)}
+              onClick={() => toggleAction(action.value)}
               className={`rounded-full border px-3 py-1.5 text-xs font-medium transition-colors ${
-                actionsTaken.includes(action)
+                actionsTaken.includes(action.value)
                   ? 'bg-forest-700 border-forest-700 text-white'
                   : 'bg-white border-sage-200 text-sage-600 hover:bg-forest-50 hover:border-forest-300'
               }`}
             >
-              {action}
+              {t(action.key)}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Notes */}
       <div>
-        <label htmlFor="notes" className="label">Notes</label>
+        <label htmlFor="notes" className="label">{t('outcome.notes')}</label>
         <textarea
           id="notes"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
-          placeholder="Add visit notes, observations..."
+          placeholder={t('outcome.notes_ph')}
           rows={3}
           className="input-field resize-none"
         />
@@ -182,7 +181,7 @@ export default function OutcomeForm({ entityName, onSubmit, onCancel }: Props) {
       <div className="flex gap-3">
         {onCancel && (
           <button type="button" onClick={onCancel} className="btn-secondary flex-1">
-            Cancel
+            {t('outcome.cancel')}
           </button>
         )}
         <button type="submit" disabled={loading} className="btn-primary flex-1">
@@ -192,10 +191,10 @@ export default function OutcomeForm({ entityName, onSubmit, onCancel }: Props) {
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                 <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
               </svg>
-              Saving...
+              {t('outcome.saving')}
             </span>
           ) : (
-            'Save Outcome'
+            t('outcome.save')
           )}
         </button>
       </div>
