@@ -65,6 +65,9 @@ SMTP_PORT     = int(os.getenv("SMTP_PORT", "587"))
 SMTP_USER     = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM     = os.getenv("SMTP_FROM", "Kheti Compass <noreply@kheticompass.dev>")
+# Resend (used on Render where SMTP outbound is blocked)
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+RESEND_FROM    = os.getenv("RESEND_FROM", "Kheti Compass <onboarding@resend.dev>")
 
 EMAIL_OTP_DEMO_REDIRECT = os.getenv("EMAIL_OTP_DEMO_REDIRECT", "")
 

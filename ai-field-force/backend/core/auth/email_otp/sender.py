@@ -16,12 +16,16 @@ from abc import ABC, abstractmethod
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
+import requests
+
 from config import (
     SMTP_HOST,
     SMTP_PORT,
     SMTP_USER,
     SMTP_PASSWORD,
     SMTP_FROM,
+    RESEND_API_KEY,
+    RESEND_FROM,
     EMAIL_OTP_DEMO_REDIRECT,
     OTP_EMAIL_EXPIRY_SECONDS,
 )
@@ -136,14 +140,74 @@ class SmtpEmailSender(EmailSender):
             logger.exception("SMTP send failed: %s", exc)
             return False
 
+# ─── Resend HTTPS API (works on Render free tier — SMTP ports are blocked) ────
 
+class ResendEmailSender(EmailSender):
+    """
+    Sends email via Resend's REST API over HTTPS.
+
+    Render's free + starter tiers block outbound SMTP ports (25/465/587) to
+    prevent spam abuse, so SMTP-based senders fail with 'Network unreachable'.
+    Resend's HTTPS API on port 443 sidesteps this entirely.
+    """
+    name = "resend"
+    API_URL = "https://api.resend.com/emails"
+
+    def send(self, *, to: str, code: str, original_email: str) -> bool:
+        expiry_minutes = max(1, OTP_EMAIL_EXPIRY_SECONDS // 60)
+
+        html_body = _HTML_TEMPLATE.format(
+            code=code,
+            expiry_minutes=expiry_minutes,
+            original_email=original_email,
+        )
+        text_body = _TEXT_TEMPLATE.format(
+            code=code,
+            expiry_minutes=expiry_minutes,
+            original_email=original_email,
+        )
+
+        try:
+            resp = requests.post(
+                self.API_URL,
+                headers={
+                    "Authorization": f"Bearer {RESEND_API_KEY}",
+                    "Content-Type":  "application/json",
+                },
+                json={
+                    "from":    RESEND_FROM,
+                    "to":      [to],
+                    "subject": f"{code} — your Kheti Compass sign-in code",
+                    "html":    html_body,
+                    "text":    text_body,
+                },
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                logger.info("Resend OTP delivered to %s (originally %s)", to, original_email)
+                return True
+            logger.error(
+                "Resend send failed: status=%s body=%s",
+                resp.status_code, resp.text[:300],
+            )
+            return False
+        except Exception as exc:
+            logger.exception("Resend request failed: %s", exc)
+            return False
 # ─── Factory ──────────────────────────────────────────────────────────────────
 
 def _build_sender() -> EmailSender:
+    """
+    Pick best available sender, in this priority order:
+      1. Resend (HTTPS — works on Render free tier)
+      2. SMTP (works locally; blocked on Render)
+      3. Console (dev fallback when nothing is configured)
+    """
+    if RESEND_API_KEY:
+        return ResendEmailSender()
     if SMTP_USER and SMTP_PASSWORD:
         return SmtpEmailSender()
     return ConsoleEmailSender()
-
 
 email_sender: EmailSender = _build_sender()
 
