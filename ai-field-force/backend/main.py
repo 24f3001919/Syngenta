@@ -13,6 +13,7 @@ from models.db import rep            as rep_model
 from models.db import auth_identity  as auth_identity_model
 from models.db import device         as device_model
 from models.db import weight_history as weight_history_model
+from models.db import refresh_token  as refresh_token_model
 
 from models.db.rep import Rep
 from models.db.auth_identity import AuthIdentity
@@ -24,6 +25,7 @@ from services.auth_service import AuthService
 from db.seed_demo_outcomes import seed_demo_outcomes
 from db.seed_data import seed as seed_growers
 from models.db.signal import Signal as _Signal
+from models.db.refresh_token import RefreshToken
 
 app = FastAPI(title="Field Force Copilot", version="0.8.0")
 
@@ -51,17 +53,17 @@ MANAGER_REP_IDS = [
     "REP_0426", "REP_0325", "REP_0372", "REP_0105", "REP_0129",
 ]
 
-
 @app.on_event("startup")
 def startup():
     # Wipe + recreate the tables we own. Signals / farmers / visits are
     # managed by db.seed_data and seeded below if missing.
+    RefreshToken.__table__.drop(bind=engine, checkfirst=True)
     WeightHistory.__table__.drop(bind=engine, checkfirst=True)
     Outcome.__table__.drop(bind=engine, checkfirst=True)
     Device.__table__.drop(bind=engine, checkfirst=True)
     AuthIdentity.__table__.drop(bind=engine, checkfirst=True)
     Rep.__table__.drop(bind=engine, checkfirst=True)
-
+    
     Base.metadata.create_all(bind=engine)
     print("✓ Database tables ready (auth + outcomes + devices + weight_history migrated)")
 
