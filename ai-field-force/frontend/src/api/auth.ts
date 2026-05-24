@@ -70,3 +70,29 @@ export async function getMe(): Promise<Rep> {
     throw new Error(getErrorMessage(err));
   }
 }
+// ─── Refresh token (called by AuthContext on app boot) ────────────────────────
+
+export async function refreshAccessToken(): Promise<AuthResponse | null> {
+  if (MOCK_MODE) return null;  // mock mode never refreshes
+  try {
+    const { data } = await client.post('/auth/refresh', {});
+    // Save the new access token immediately
+    if (data?.access_token) {
+      localStorage.setItem('access_token', data.access_token);
+    }
+    return adaptAuthResponse(data);
+  } catch {
+    return null;
+  }
+}
+
+// ─── Logout (revoke refresh token server-side + clear cookie) ─────────────────
+
+export async function logoutApi(): Promise<void> {
+  if (MOCK_MODE) return;
+  try {
+    await client.post('/auth/logout', {});
+  } catch {
+    // Always silent — logout proceeds client-side regardless
+  }
+}
