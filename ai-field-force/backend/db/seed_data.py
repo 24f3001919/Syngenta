@@ -64,9 +64,11 @@ def _seed_ndvi_stress(entity_id: str, district: str, pest_severity: str) -> floa
     Higher pest severity in district → slightly higher stress.
     Used as a baseline until /signals/refresh fetches real Sentinel-2 data.
     """
-    # Hash entity + district for stable per-grower value
-    base = (sum(ord(c) for c in entity_id) + sum(ord(c) for c in district)) % 100
-    stress = base / 100.0  # 0.0 to 0.99
+    import hashlib
+    # SHA-256 of "entity_id|district" → first 2 bytes → 0..65535 → 0..0.99
+    h = hashlib.sha256(f"{entity_id}|{district}".encode("utf-8")).digest()
+    base = int.from_bytes(h[:2], "big") / 65535.0  # 0.0 to 0.99
+    stress = base * 0.99
 
     # Nudge based on pest pressure in the region
     if pest_severity == "high":
