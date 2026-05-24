@@ -20,6 +20,9 @@ from core.auth.security import (
     create_refresh_token,
     decode_refresh_token,
 )
+from core.auth.email_otp.store import email_otp_store, Challenge
+from core.auth.email_otp.sender import email_sender, resolve_destination, mask_email
+from config import TWO_FA_REQUIRED_ROLES
 
 class AuthService:
     # ---------- helpers ----------
@@ -108,6 +111,74 @@ class AuthService:
         rep = db.query(Rep).filter(Rep.id == ident.rep_id).first()
         if not rep or not rep.is_active:
             raise HTTPException(status_code=403, detail="Account disabled")
+        return rep
+    # ---------- 2FA email-OTP login ----------
+
+    def role_requires_2fa(self, rep: Rep) -> bool:
+        """Whether this rep's role is on the 2FA enforcement list."""
+        return rep.role in TWO_FA_REQUIRED_ROLES
+
+    def begin_2fa_login(self, db: Session, rep: Rep) -> tuple[Challenge, str, str]:
+        """Issue a fresh OTP challenge for a rep who's just passed password auth.
+
+        Returns (challenge, destination_email_used, masked_original_email).
+        Caller (the route) is responsible for sending the email — this method
+        only generates the challenge and dispatches via the email_sender.
+
+        We send to `destination_email_used` (which may differ from rep email
+        in demo mode) but always log the masked ORIGINAL email so judges /
+        users know which account they're logging into.
+        """
+        if not rep.primary_email:
+            raise HTTPException(
+                status_code=400,
+                detail="Account has no email on file — cannot send 2FA code.",
+            )
+
+        challenge = email_otp_store.issue(rep_id=rep.id, email=rep.primary_email)
+        destination = resolve_destination(rep.primary_email)
+
+        sent = email_sender.send(
+            to=destination,
+            code=challenge.code,
+            original_email=rep.primary_email,
+        )
+        if not sent:
+            # Don't leak the failure path to the client — but invalidate the
+            # challenge so the user can't lock themselves out on a typo
+            # against a code that was never sent.
+            email_otp_store.invalidate(challenge.challenge_id)
+            raise HTTPException(
+                status_code=503,
+                detail="Could not send verification code. Please try again shortly.",
+            )
+
+        masked = mask_email(rep.primary_email)
+        return challenge, destination, masked
+
+    def complete_2fa_login(
+        self,
+        db: Session,
+        challenge_id: str,
+        code: str,
+    ) -> Rep:
+        """Verify the OTP code against the challenge.
+
+        On success → return the Rep (caller issues the token pair).
+        On failure → raise 401. Either bad code, expired challenge,
+        or attempts exhausted — same error message to avoid leaking which.
+        """
+        challenge = email_otp_store.verify(challenge_id, code)
+        if not challenge:
+            raise HTTPException(
+                status_code=401,
+                detail="Invalid or expired verification code.",
+            )
+
+        rep = db.query(Rep).filter(Rep.id == challenge.rep_id).first()
+        if not rep or not rep.is_active:
+            raise HTTPException(status_code=403, detail="Account disabled")
+
         return rep
 
     # ---------- OTP login ----------
