@@ -1,10 +1,11 @@
 import uuid
 import hashlib
-from datetime import datetime
 from typing import Optional, Dict, Any, List, Tuple
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from jose import JWTError
+from datetime import datetime, timezone
+
 
 from models.db.rep import Rep
 from models.db.auth_identity import AuthIdentity
@@ -19,7 +20,6 @@ from core.auth.security import (
     create_refresh_token,
     decode_refresh_token,
 )
-
 
 class AuthService:
     # ---------- helpers ----------
@@ -124,7 +124,7 @@ class AuthService:
             if not rep or not rep.is_active:
                 raise HTTPException(status_code=403, detail="Account disabled")
             if not ident.verified_at:
-                ident.verified_at = datetime.utcnow()
+                ident.verified_at = datetime.now(timezone.utc)
                 db.commit()
             return rep
 
@@ -146,7 +146,7 @@ class AuthService:
             provider="whatsapp_otp",
             identifier=phone,
             credential=None,
-            verified_at=datetime.utcnow(),
+            verified_at=datetime.now(timezone.utc),
         ))
         db.commit()
         db.refresh(rep)
@@ -176,7 +176,7 @@ class AuthService:
                 provider="google",
                 identifier=google_sub,
                 credential=None,
-                verified_at=datetime.utcnow(),
+                verified_at=datetime.now(timezone.utc),
             ))
             db.commit()
             db.refresh(rep)
@@ -200,7 +200,7 @@ class AuthService:
             provider="google",
             identifier=google_sub,
             credential=None,
-            verified_at=datetime.utcnow(),
+            verified_at=datetime.now(timezone.utc),
         ))
         db.commit()
         db.refresh(rep)
@@ -225,7 +225,7 @@ class AuthService:
             provider="google",
             identifier=google_sub,
             credential=None,
-            verified_at=datetime.utcnow(),
+            verified_at=datetime.now(timezone.utc),
         ))
         db.commit()
         db.refresh(rep)
@@ -237,7 +237,7 @@ class AuthService:
         if existing:
             if existing.rep_id == rep.id:
                 if not existing.verified_at:
-                    existing.verified_at = datetime.utcnow()
+                    existing.verified_at = datetime.now(timezone.utc)
                     db.commit()
                 return rep
             raise HTTPException(
@@ -251,7 +251,7 @@ class AuthService:
             provider="whatsapp_otp",
             identifier=phone,
             credential=None,
-            verified_at=datetime.utcnow(),
+            verified_at=datetime.now(timezone.utc),
         ))
         db.commit()
         db.refresh(rep)
@@ -296,7 +296,7 @@ class AuthService:
             provider="password",
             identifier=email,
             credential=hash_password(password),
-            verified_at=datetime.utcnow(),
+            verified_at=datetime.now(timezone.utc),
         ))
         if phone:
             db.add(AuthIdentity(
@@ -305,7 +305,7 @@ class AuthService:
                 provider="whatsapp_otp",
                 identifier=phone,
                 credential=None,
-                verified_at=datetime.utcnow(),
+                verified_at=datetime.now(timezone.utc),
             ))
         db.commit()
         db.refresh(rep)
@@ -342,7 +342,7 @@ class AuthService:
             rep_id=rep.id,
             jti=jti,
             device_id=device_id,
-            issued_at=datetime.utcnow(),
+            issued_at=datetime.now(timezone.utc),
             expires_at=expires_at,
             revoked_at=None,
             user_agent=(user_agent or "")[:500] or None,
@@ -402,7 +402,7 @@ class AuthService:
             raise HTTPException(status_code=403, detail="Account disabled")
 
         # Mark old token as rotated, issue new pair
-        record.revoked_at = datetime.utcnow()
+        record.revoked_at = datetime.now(timezone.utc)
         record.revoked_reason = "rotated"
 
         access, new_refresh, new_expires = self.issue_token_pair(
@@ -448,14 +448,14 @@ class AuthService:
             return
         record = db.query(RefreshToken).filter(RefreshToken.jti == jti).first()
         if record and record.revoked_at is None:
-            record.revoked_at = datetime.utcnow()
+            record.revoked_at = datetime.now(timezone.utc)
             record.revoked_reason = reason
             db.commit()
 
 
     def _revoke_all_for_rep(self, db: Session, rep_pk: str, *, reason: str) -> int:
         """Revoke every active refresh token for a rep. Used on reuse detection."""
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         rows = (
             db.query(RefreshToken)
             .filter(

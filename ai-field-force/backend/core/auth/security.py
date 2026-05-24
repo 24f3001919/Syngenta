@@ -1,7 +1,7 @@
 import re
 import secrets
 import bcrypt
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from jose import jwt, JWTError
 from config import (
@@ -35,7 +35,7 @@ def verify_password(plain: str, hashed: str) -> bool:
 # ---------- access tokens (short-lived, sent in Authorization header) ----------
 
 def create_access_token(subject: str, extra_claims: Optional[dict] = None) -> str:
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     expire = now + timedelta(minutes=JWT_ACCESS_EXPIRE_MINUTES)
     payload = {
         "sub": subject,
@@ -64,7 +64,7 @@ def create_refresh_token(subject: str, jti: Optional[str] = None) -> tuple[str, 
     The jti (JWT ID) is also stored in DB so we can revoke individual tokens
     without invalidating every refresh token issued to this user.
     """
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     expire = now + timedelta(days=JWT_REFRESH_EXPIRE_DAYS)
     jti = jti or secrets.token_urlsafe(16)
     payload = {
