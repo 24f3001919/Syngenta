@@ -14,6 +14,19 @@ export interface AuthResponse {
   rep: Rep;
 }
 
+export interface Login2FAResponse {
+  requires_2fa: true;
+  challenge_id: string;
+  email_masked: string;
+  expires_in_seconds: number;
+  dev_otp?: string;  // only present in DEV_MODE
+}
+
+export function is2FAResponse(
+  r: AuthResponse | Login2FAResponse,
+): r is Login2FAResponse {
+  return (r as Login2FAResponse).requires_2fa === true;
+}
 export interface OtpSendResponse {
   message: string;
   dev_otp?: string; // Only present in DEV_MODE
