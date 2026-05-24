@@ -289,6 +289,8 @@ const en: Record<string, string> = {
   'auth.2fa.verify':         'Verify and sign in',
   'auth.2fa.verifying':      'Verifying...',
   'auth.2fa.dev_hint':       'DEV MODE — code:',
+  'outcome.competitor_seen': 'Competitor product seen at this visit',
+  'outcome.competitor_seen_hint': 'Flags this grower for competitive pressure on tomorrow\'s priority list',
 }
 
 // ─── Hindi (from Kunal's PR, retained verbatim) ─────────────────────
@@ -493,6 +495,8 @@ const hi: Record<string, string> = {
   'auth.2fa.verify':         'सत्यापित करें और साइन इन करें',
   'auth.2fa.verifying':      'सत्यापित हो रहा है...',
   'auth.2fa.dev_hint':       'डेव मोड — कोड:',
+  'outcome.competitor_seen': 'इस यात्रा में प्रतिस्पर्धी उत्पाद देखा गया',
+  'outcome.competitor_seen_hint': 'कल की प्राथमिकता सूची के लिए इस किसान को प्रतिस्पर्धी दबाव के रूप में चिह्नित करता है',
 }
 
 // ─── Gujarati ─────────────────────────────────────────────────────────
@@ -697,6 +701,8 @@ const gu: Record<string, string> = {
   'auth.2fa.verify':         'ચકાસો અને સાઇન ઇન કરો',
   'auth.2fa.verifying':      'ચકાસી રહ્યું છે...',
   'auth.2fa.dev_hint':       'ડેવ મોડ — કોડ:',
+  'outcome.competitor_seen': 'આ મુલાકાતમાં હરીફ ઉત્પાદન જોવા મળ્યું',
+  'outcome.competitor_seen_hint': 'આવતીકાલની પ્રાથમિકતા સૂચિ માટે આ ખેડૂતને હરીફ દબાવ માટે ચિહ્નિત કરે છે',
 }
 
 // ─── Bengali ──────────────────────────────────────────────────────────
@@ -901,5 +907,7 @@ const bn: Record<string, string> = {
   'auth.2fa.verify':         'যাচাই করুন ও সাইন ইন করুন',
   'auth.2fa.verifying':      'যাচাই করা হচ্ছে...',
   'auth.2fa.dev_hint':       'ডেভ মোড — কোড:',
+  'outcome.competitor_seen': 'এই পরিদর্শনে প্রতিদ্বন্দ্বী পণ্য দেখা গেছে',
+  'outcome.competitor_seen_hint': 'আগামীকালের অগ্রাধিকার তালিকার জন্য এই কৃষককে প্রতিযোগিতামূলক চাপ হিসাবে চিহ্নিত করে',
 }
 const DICTIONARIES: Record<Lang, Record<string, string>> = { en, hi, gu, bn }

@@ -65,6 +65,7 @@ export interface OutcomeRecord {
   outcome_type: OutcomeType;
   actions_taken: string[];
   notes: string;
+  competitor_seen?: boolean;
   visited_at: string;
 }
 

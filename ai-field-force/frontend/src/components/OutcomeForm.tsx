@@ -19,6 +19,7 @@ interface FormValues {
   outcome_type: OutcomeType;
   actions_taken: string[];
   notes: string;
+  competitor_seen: boolean;
 }
 
 interface Props {
@@ -63,6 +64,7 @@ export default function OutcomeForm({ entityName, onSubmit, onCancel }: Props) {
   const [outcomeType, setOutcomeType] = useState<OutcomeType>('follow_up_needed');
   const [actionsTaken, setActionsTaken] = useState<string[]>([]);
   const [notes, setNotes] = useState('');
+  const [competitorSeen, setCompetitorSeen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -86,7 +88,7 @@ export default function OutcomeForm({ entityName, onSubmit, onCancel }: Props) {
     setError('');
     setLoading(true);
     try {
-      await onSubmit({ rating, outcome_type: outcomeType, actions_taken: actionsTaken, notes });
+      await onSubmit({ rating, outcome_type: outcomeType, actions_taken: actionsTaken, notes, competitor_seen: competitorSeen });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to submit.');
     } finally {
@@ -172,6 +174,20 @@ export default function OutcomeForm({ entityName, onSubmit, onCancel }: Props) {
           rows={3}
           className="input-field resize-none"
         />
+      </div>
+      <div className="card px-4 py-3">
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={competitorSeen}
+            onChange={(e) => setCompetitorSeen(e.target.checked)}
+            className="mt-0.5 w-4 h-4 rounded border-sage-300 text-clay-600 focus:ring-clay-500 cursor-pointer"
+          />
+          <div>
+            <p className="text-sm font-medium text-forest-900">{t('outcome.competitor_seen')}</p>
+            <p className="text-xs text-sage-500 mt-0.5">{t('outcome.competitor_seen_hint')}</p>
+          </div>
+        </label>
       </div>
 
       {error && (

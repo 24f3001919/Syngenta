@@ -15,6 +15,7 @@ class VisitOutcome(BaseModel):
     outcome_rating:   int
     outcome_type:     str
     notes:            str
+    competitor_seen:  bool = False
     signals_at_visit: dict
 
 
@@ -30,6 +31,7 @@ class OutcomeRecord(BaseModel):
     actions_taken:    list[str]
     actions_accepted: list[str] = []
     notes:            Optional[str] = None
+    competitor_seen:   bool = False
     # Optional sync hints — if supplied, this submission gets idempotency too
     client_outcome_id: Optional[str] = None
     device_id:         Optional[str] = None
@@ -47,6 +49,7 @@ class SyncOutcomeItem(BaseModel):
     actions_taken:     List[str]
     actions_accepted:  List[str] = []
     notes:             Optional[str] = None
+    competitor_seen:   bool = False
     recorded_at:       Optional[datetime] = None   # when it happened on-device
 
 

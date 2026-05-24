@@ -1,5 +1,5 @@
 # backend/models/db/outcome.py
-from sqlalchemy import Column, String, Integer, DateTime, JSON, ForeignKey, UniqueConstraint
+from sqlalchemy import Column, String, Integer, DateTime, JSON, ForeignKey, UniqueConstraint, Boolean
 from datetime import datetime
 from db.session import Base
 
@@ -36,3 +36,7 @@ class Outcome(Base):
     notes            = Column(String, nullable=True)
     signals_at_visit = Column(JSON, default=dict)
     synced_at        = Column(DateTime, default=datetime.utcnow)  # when server received it
+    # Rep observation: was a competitor product seen at this visit? When True,
+    # the outcome handler sets the grower's signal.payload.competitor_activity
+    # so future priority scores reflect rep-observed competitive pressure.
+    competitor_seen  = Column(Boolean, default=False, nullable=False)
