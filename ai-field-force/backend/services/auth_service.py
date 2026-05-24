@@ -1,19 +1,23 @@
-# backend/services/auth_service.py
 import uuid
+import hashlib
 from datetime import datetime
-from typing import Optional, Dict, Any, List
-
+from typing import Optional, Dict, Any, List, Tuple
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
+from jose import JWTError
 
 from models.db.rep import Rep
 from models.db.auth_identity import AuthIdentity
+from models.db.refresh_token import RefreshToken
 from models.schemas.auth import PasswordRegisterRequest
 from core.auth.security import (
     hash_password,
     verify_password,
     normalize_phone,
     is_email,
+    create_access_token,
+    create_refresh_token,
+    decode_refresh_token,
 )
 
 
@@ -306,3 +310,168 @@ class AuthService:
         db.commit()
         db.refresh(rep)
         return rep
+    # ---------- token pair issue / refresh / revoke ----------
+
+    def issue_token_pair(
+        self,
+        db: Session,
+        rep: Rep,
+        *,
+        user_agent: Optional[str] = None,
+        ip: Optional[str] = None,
+        device_id: Optional[str] = None,
+    ) -> Tuple[str, str, datetime]:
+        """Create an access token + refresh token pair, persist the refresh jti.
+
+        Returns (access_token, refresh_token, refresh_expires_at).
+        The refresh token JWT is meant to go straight into an httpOnly cookie.
+        """
+        access = create_access_token(
+            subject=rep.id,
+            extra_claims={
+                "rep_id": rep.rep_id,
+                "email":  rep.primary_email,
+                "role":   rep.role,
+            },
+        )
+
+        refresh_jwt, jti, expires_at = create_refresh_token(subject=rep.id)
+
+        db.add(RefreshToken(
+            id=str(uuid.uuid4()),
+            rep_id=rep.id,
+            jti=jti,
+            device_id=device_id,
+            issued_at=datetime.utcnow(),
+            expires_at=expires_at,
+            revoked_at=None,
+            user_agent=(user_agent or "")[:500] or None,
+            ip_hash=self._hash_ip(ip) if ip else None,
+        ))
+        db.commit()
+        return access, refresh_jwt, expires_at
+
+
+    def rotate_refresh_token(
+        self,
+        db: Session,
+        refresh_jwt: str,
+        *,
+        user_agent: Optional[str] = None,
+        ip: Optional[str] = None,
+    ) -> Tuple[Rep, str, str, datetime]:
+        """Validate the presented refresh token, revoke it, and issue a new pair.
+
+        Returns (rep, new_access_token, new_refresh_token, new_refresh_expires_at).
+        Raises 401 if the token is invalid, expired, revoked, or reused after rotation.
+        """
+        if not refresh_jwt:
+            raise HTTPException(status_code=401, detail="Missing refresh token")
+
+        try:
+            payload = decode_refresh_token(refresh_jwt)
+        except JWTError:
+            raise HTTPException(status_code=401, detail="Invalid refresh token")
+
+        rep_pk = payload.get("sub")
+        jti    = payload.get("jti")
+        if not rep_pk or not jti:
+            raise HTTPException(status_code=401, detail="Malformed refresh token")
+
+        # Look up DB row
+        record: Optional[RefreshToken] = (
+            db.query(RefreshToken)
+            .filter(RefreshToken.jti == jti)
+            .first()
+        )
+        if not record:
+            # Token signature valid but not in DB → never issued or wiped.
+            raise HTTPException(status_code=401, detail="Refresh token not recognised")
+
+        # Reuse detection: if it was already revoked due to rotation, someone replayed it.
+        # Nuke all sessions for this rep — they're compromised.
+        if record.revoked_at is not None:
+            self._revoke_all_for_rep(db, record.rep_id, reason="reuse_detected")
+            raise HTTPException(status_code=401, detail="Refresh token reuse detected; all sessions revoked")
+
+        if record.is_expired:
+            raise HTTPException(status_code=401, detail="Refresh token expired")
+
+        rep = db.query(Rep).filter(Rep.id == record.rep_id).first()
+        if not rep or not rep.is_active:
+            raise HTTPException(status_code=403, detail="Account disabled")
+
+        # Mark old token as rotated, issue new pair
+        record.revoked_at = datetime.utcnow()
+        record.revoked_reason = "rotated"
+
+        access, new_refresh, new_expires = self.issue_token_pair(
+            db,
+            rep,
+            user_agent=user_agent,
+            ip=ip,
+            device_id=record.device_id,
+        )
+
+        # Wire the rotation chain so audit shows old → new
+        # (We need the new jti — pull from DB by fetching the just-inserted row)
+        latest = (
+            db.query(RefreshToken)
+            .filter(RefreshToken.rep_id == rep.id)
+            .order_by(RefreshToken.issued_at.desc())
+            .first()
+        )
+        if latest:
+            record.replaced_by_jti = latest.jti
+        db.commit()
+
+        return rep, access, new_refresh, new_expires
+
+
+    def revoke_refresh_token(
+        self,
+        db: Session,
+        refresh_jwt: Optional[str],
+        *,
+        reason: str = "logout",
+    ) -> None:
+        """Revoke a single refresh token. Silent on invalid/missing input (logout
+        should always 'succeed' from the user's perspective)."""
+        if not refresh_jwt:
+            return
+        try:
+            payload = decode_refresh_token(refresh_jwt)
+        except JWTError:
+            return
+        jti = payload.get("jti")
+        if not jti:
+            return
+        record = db.query(RefreshToken).filter(RefreshToken.jti == jti).first()
+        if record and record.revoked_at is None:
+            record.revoked_at = datetime.utcnow()
+            record.revoked_reason = reason
+            db.commit()
+
+
+    def _revoke_all_for_rep(self, db: Session, rep_pk: str, *, reason: str) -> int:
+        """Revoke every active refresh token for a rep. Used on reuse detection."""
+        now = datetime.utcnow()
+        rows = (
+            db.query(RefreshToken)
+            .filter(
+                RefreshToken.rep_id == rep_pk,
+                RefreshToken.revoked_at.is_(None),
+            )
+            .all()
+        )
+        for r in rows:
+            r.revoked_at = now
+            r.revoked_reason = reason
+        db.commit()
+        return len(rows)
+
+
+    @staticmethod
+    def _hash_ip(ip: str) -> str:
+        """SHA-256 a client IP for forensic correlation without storing raw IP."""
+        return hashlib.sha256(ip.encode("utf-8")).hexdigest()[:32]
