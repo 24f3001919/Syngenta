@@ -11,6 +11,8 @@ from models.schemas.auth import (
     PasswordLoginRequest,
     TokenResponse,
     RepProfile,
+    Login2FAResponse,
+    Verify2FARequest,
 )
 from models.schemas.otp import (
     OtpSendRequest,
@@ -28,6 +30,7 @@ from config import (
     JWT_ACCESS_EXPIRE_MINUTES,
     JWT_REFRESH_EXPIRE_DAYS,
     OTP_EXPIRY_SECONDS,
+    OTP_EMAIL_EXPIRY_SECONDS,
     DEV_MODE,
     REFRESH_COOKIE_NAME,
     REFRESH_COOKIE_DOMAIN,
@@ -111,16 +114,38 @@ def register_password(
     return _issue_and_set(response, request, db, rep)
 
 
-@router.post("/login/password", response_model=TokenResponse,
-             summary="Login with email or phone + password")
+@router.post("/login/password",
+             summary="Login with email or phone + password (may return 2FA challenge)")
 def login_password(
     data: PasswordLoginRequest,
     response: Response,
     request: Request,
     db: Session = Depends(get_db),
 ):
+    """
+    Two-stage password login:
+      1. Validate credentials
+      2. If user's role requires 2FA → send OTP, return Login2FAResponse
+         Frontend then POSTs to /auth/2fa/verify to complete login
+      3. If role does not require 2FA → issue token pair directly (legacy path)
+
+    Response shape varies — frontend must check the `requires_2fa` field.
+    """
     rep = service.login_with_password(db, data.identifier, data.password)
-    return _issue_and_set(response, request, db, rep)
+
+    if not service.role_requires_2fa(rep):
+        # Legacy single-factor path (e.g. for service accounts or test reps)
+        return _issue_and_set(response, request, db, rep)
+
+    # 2FA branch — send OTP and return challenge
+    challenge, destination, masked = service.begin_2fa_login(db, rep)
+    return Login2FAResponse(
+        requires_2fa=True,
+        challenge_id=challenge.challenge_id,
+        email_masked=masked,
+        expires_in_seconds=OTP_EMAIL_EXPIRY_SECONDS,
+        dev_otp=challenge.code if DEV_MODE else None,
+    )
 
 
 @router.post("/token", response_model=TokenResponse,
@@ -185,6 +210,23 @@ def google_verify(
 
 
 # ─── Refresh + Logout (NEW) ───────────────────────────────────────────────────
+@router.post("/2fa/verify", response_model=TokenResponse,
+             summary="Complete 2FA login by verifying the email OTP")
+def verify_2fa(
+    data: Verify2FARequest,
+    response: Response,
+    request: Request,
+    db: Session = Depends(get_db),
+):
+    """
+    Complete the password+2FA login flow.
+
+    Frontend gets a `challenge_id` from /auth/login/password and submits it
+    here along with the 6-digit code from the user's email. On success,
+    issues the standard access + refresh token pair.
+    """
+    rep = service.complete_2fa_login(db, data.challenge_id, data.code)
+    return _issue_and_set(response, request, db, rep)
 
 @router.post("/refresh", response_model=TokenResponse,
              summary="Rotate the refresh token (cookie) for a fresh access token")
