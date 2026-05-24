@@ -21,12 +21,29 @@ from models.db.refresh_token import RefreshToken
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def _login(client, identifier="test.rep@syngenta.com", password="testpass123"):
-    res = client.post(
+    """Complete password+2FA login in the test environment.
+
+    Returns the /auth/2fa/verify response which contains access_token in body
+    and refresh_token in cookies — same shape the old single-factor login had.
+    """
+    pw_res = client.post(
         "/auth/login/password",
         json={"identifier": identifier, "password": password},
     )
-    assert res.status_code == 200, res.text
-    return res
+    assert pw_res.status_code == 200, pw_res.text
+    body = pw_res.json()
+
+    if not body.get("requires_2fa"):
+        # Legacy path — shouldn't happen for rep test account but handle it
+        return pw_res
+
+    # Complete 2FA using the dev OTP that DEV_MODE included in the response
+    verify_res = client.post(
+        "/auth/2fa/verify",
+        json={"challenge_id": body["challenge_id"], "code": body["dev_otp"]},
+    )
+    assert verify_res.status_code == 200, verify_res.text
+    return verify_res
 
 
 # ─── Tests ────────────────────────────────────────────────────────────────────
