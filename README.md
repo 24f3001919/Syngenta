@@ -1,4 +1,8 @@
 # Kheti Compass
+[![Backend Tests](https://github.com/Ratnesh-101/Syngenta/actions/workflows/test.yml/badge.svg)](https://github.com/Ratnesh-101/Syngenta/actions/workflows/test.yml)
+[![Live Backend](https://img.shields.io/website?url=https%3A%2F%2Fkheti-compass.onrender.com%2F&up_message=live&down_message=down&label=backend)](https://kheti-compass.onrender.com/docs)
+[![Live Frontend](https://img.shields.io/website?url=https%3A%2F%2Fsyngenta-nu.vercel.app%2F&up_message=live&down_message=down&label=frontend)](https://syngenta-nu.vercel.app)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **An AI-Guided Visit Priority System for Syngenta Field Reps**
 
