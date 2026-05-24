@@ -1,8 +1,9 @@
 # Kheti Compass
 [![Backend Tests](https://github.com/Ratnesh-101/Syngenta/actions/workflows/test.yml/badge.svg)](https://github.com/Ratnesh-101/Syngenta/actions/workflows/test.yml)
-[![Live Backend](https://img.shields.io/website?url=https%3A%2F%2Fkheti-compass.onrender.com%2F&up_message=live&down_message=down&label=backend)](https://kheti-compass.onrender.com/docs)
-[![Live Frontend](https://img.shields.io/website?url=https%3A%2F%2Fsyngenta-nu.vercel.app%2F&up_message=live&down_message=down&label=frontend)](https://syngenta-nu.vercel.app)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Backend on Render](https://img.shields.io/badge/backend-Render-46E3B7?logo=render&logoColor=white)](https://kheti-compass.onrender.com/docs)
+[![Frontend on Vercel](https://img.shields.io/badge/frontend-Vercel-000000?logo=vercel&logoColor=white)](https://syngenta-nu.vercel.app)
+[![Python 3.11+](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)](https://www.python.org)
+[![React 18](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=black)](https://react.dev)
 
 **An AI-Guided Visit Priority System for Syngenta Field Reps**
 
