@@ -10,8 +10,24 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 # JWT
 JWT_SECRET         = os.getenv("JWT_SECRET", "dev-secret-change-me")
 JWT_ALGORITHM      = os.getenv("JWT_ALGORITHM", "HS256")
-JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "10080"))
+# Access token: short-lived. Frontend silently refreshes via /auth/refresh.
+JWT_ACCESS_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_EXPIRE_MINUTES", "15"))
 
+# Refresh token: long-lived, stored in httpOnly cookie. Rotated on every refresh.
+JWT_REFRESH_EXPIRE_DAYS   = int(os.getenv("JWT_REFRESH_EXPIRE_DAYS", "30"))
+
+# Refresh token secret — different from access secret so a leaked access token
+# can't be exchanged for refresh tokens. Falls back to JWT_SECRET if not set.
+JWT_REFRESH_SECRET = os.getenv("JWT_REFRESH_SECRET", JWT_SECRET + "-refresh")
+
+# Legacy alias — kept until all callsites migrate to JWT_ACCESS_EXPIRE_MINUTES
+JWT_EXPIRE_MINUTES = JWT_ACCESS_EXPIRE_MINUTES
+
+# Cookie settings (set per-environment in production)
+REFRESH_COOKIE_NAME    = os.getenv("REFRESH_COOKIE_NAME", "refresh_token")
+REFRESH_COOKIE_DOMAIN  = os.getenv("REFRESH_COOKIE_DOMAIN", "")  # empty = same-origin
+REFRESH_COOKIE_SECURE  = os.getenv("REFRESH_COOKIE_SECURE", "false").lower() == "true"
+REFRESH_COOKIE_SAMESITE = os.getenv("REFRESH_COOKIE_SAMESITE", "lax")  # "none" for cross-origin
 # Dev mode
 DEV_MODE = os.getenv("DEV_MODE", "false").lower() == "true"
 
