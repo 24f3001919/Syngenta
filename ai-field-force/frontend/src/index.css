@@ -17,6 +17,7 @@
   body {
     background-color: #f0f9f4;
     color: #0e3a27;
+    transition: background-color 0.15s ease, color 0.15s ease;
   }
 
   h1, h2, h3 {
@@ -25,25 +26,52 @@
 }
 
 @layer components {
+
+  /* ── Buttons ──────────────────────────────────── */
+
   .btn-primary {
-    @apply bg-forest-700 text-white font-semibold rounded-xl px-5 py-3 text-sm 
-           hover:bg-forest-800 active:bg-forest-900 
+    @apply bg-forest-700 text-white font-semibold rounded-xl px-5 py-3 text-sm
+           hover:bg-forest-800 active:bg-forest-900
            disabled:opacity-50 disabled:cursor-not-allowed
            transition-colors duration-150;
   }
 
+  .dark .btn-primary {
+    @apply bg-forest-600 hover:bg-forest-700 active:bg-forest-800;
+  }
+
   .btn-secondary {
-    @apply bg-white text-forest-700 font-semibold rounded-xl px-5 py-3 text-sm 
+    @apply bg-white text-forest-700 font-semibold rounded-xl px-5 py-3 text-sm
            border border-forest-200
            hover:bg-forest-50 active:bg-forest-100
            disabled:opacity-50 disabled:cursor-not-allowed
            transition-colors duration-150;
   }
 
+  .dark .btn-secondary {
+    @apply bg-dm-raised text-dm-surface border-dm-border
+           hover:bg-dm-border;
+  }
+
+  /* Tailwind won't interpolate text color from custom tokens in @apply
+     so we override text color for dark btn-secondary here */
+  .dark .btn-secondary {
+    color: #a3c9b4;
+  }
+
   .btn-ghost {
     @apply text-forest-600 font-medium rounded-xl px-4 py-2 text-sm
            hover:bg-forest-100 active:bg-forest-200
            transition-colors duration-150;
+  }
+
+  .dark .btn-ghost {
+    color: #4a6655;
+  }
+
+  .dark .btn-ghost:hover {
+    background-color: #1a2820;
+    color: #a3c9b4;
   }
 
   .btn-danger {
@@ -53,8 +81,16 @@
            transition-colors duration-150;
   }
 
+  /* ── Cards ────────────────────────────────────── */
+
   .card {
     @apply bg-white rounded-2xl shadow-card border border-forest-100/60;
+  }
+
+  .dark .card {
+    background-color: #161e19;
+    border-color: #1e2b22;
+    box-shadow: 0 1px 2px 0 rgba(0,0,0,0.25);
   }
 
   .card-hover {
@@ -63,6 +99,19 @@
            transition-all duration-200 cursor-pointer;
   }
 
+  .dark .card-hover {
+    background-color: #161e19;
+    border-color: #1e2b22;
+    box-shadow: 0 1px 2px 0 rgba(0,0,0,0.25);
+  }
+
+  .dark .card-hover:hover {
+    background-color: #1a2820;
+    border-color: #2d4a38;
+  }
+
+  /* ── Inputs ───────────────────────────────────── */
+
   .input-field {
     @apply w-full rounded-xl border border-sage-200 bg-white px-4 py-3 text-sm
            text-forest-900 placeholder-sage-400
@@ -70,95 +119,173 @@
            transition-colors duration-150;
   }
 
+  .dark .input-field {
+    background-color: #1a2820;
+    border-color: #1e2b22;
+    color: #c2d9cb;
+  }
+
+  .dark .input-field::placeholder {
+    color: #2d4a38;
+  }
+
+  .dark .input-field:focus {
+    border-color: #2d8f60;
+    box-shadow: 0 0 0 2px rgba(45,143,96,0.15);
+  }
+
+  /* ── Labels ───────────────────────────────────── */
+
   .label {
     @apply block text-xs font-semibold text-sage-600 uppercase tracking-wider mb-1.5;
   }
 
+  .dark .label {
+    color: #2d4a38;
+  }
+
+  /* ── Badges ───────────────────────────────────── */
+
   .badge-green {
-    @apply inline-flex items-center rounded-full bg-forest-100 text-forest-700 
+    @apply inline-flex items-center rounded-full bg-forest-100 text-forest-700
            px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .dark .badge-green {
+    background-color: #162318;
+    border: 1px solid #1e3022;
+    color: #5a9e78;
   }
 
   .badge-yellow {
-    @apply inline-flex items-center rounded-full bg-harvest-100 text-harvest-700 
+    @apply inline-flex items-center rounded-full bg-harvest-100 text-harvest-700
            px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .dark .badge-yellow {
+    background-color: #1c1508;
+    border: 1px solid #2a1e0a;
+    color: #a07840;
   }
 
   .badge-red {
-    @apply inline-flex items-center rounded-full bg-clay-100 text-clay-700 
+    @apply inline-flex items-center rounded-full bg-clay-100 text-clay-700
            px-2.5 py-0.5 text-xs font-medium;
   }
 
+  .dark .badge-red {
+    background-color: #1e1414;
+    border: 1px solid #2e1c1c;
+    color: #8a4040;
+  }
+
   .badge-gray {
-    @apply inline-flex items-center rounded-full bg-sage-100 text-sage-600 
+    @apply inline-flex items-center rounded-full bg-sage-100 text-sage-600
            px-2.5 py-0.5 text-xs font-medium;
   }
+
+  .dark .badge-gray {
+    background-color: #1a2820;
+    border: 1px solid #1e2b22;
+    color: #3a5545;
+  }
+
+  /* ── Typography ───────────────────────────────── */
 
   .section-title {
     @apply font-display text-xl font-bold text-forest-900;
   }
 
+  .dark .section-title {
+    color: #c2d9cb;
+  }
+
   .page-header {
     @apply font-display text-2xl font-bold text-forest-900;
   }
+
+  .dark .page-header {
+    color: #d4e8dc;
+  }
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 4px;
-  height: 4px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #a6c4b5;
-  border-radius: 999px;
+/* ── Global dark base ─────────────────────────────────────────────────────────
+   Handles elements that can't receive @layer component dark variants —
+   raw HTML elements, layout wrappers, and Tailwind utility overrides.
+──────────────────────────────────────────────────────────────────────────────*/
+
+/* Page */
+.dark body {
+  background-color: #111714;
+  color: #c2d9cb;
 }
 
-/* Remove iOS button styling */
+.dark main {
+  background-color: #111714;
+}
+
+/* Header */
+.dark header {
+  background-color: #111714;
+  border-color: #1e2b22;
+}
+
+/* ── Text color overrides ───────── */
+.dark .text-forest-900 { color: #d4e8dc; }
+.dark .text-forest-800 { color: #c2d9cb; }
+.dark .text-forest-700 { color: #a3c9b4; }
+.dark .text-forest-600 { color: #7dba9c; }
+.dark .text-sage-600   { color: #4a6655; }
+.dark .text-sage-500   { color: #3a5545; }
+.dark .text-sage-400   { color: #2d4a38; }
+
+/* Semantic — keep these readable in dark */
+.dark .text-harvest-700 { color: #a07840; }
+.dark .text-harvest-600 { color: #a07840; }
+.dark .text-clay-700    { color: #8a4040; }
+.dark .text-clay-600    { color: #c07070; }
+
+/* ── Background overrides ───────── */
+.dark .bg-white        { background-color: #161e19; }
+.dark .bg-forest-50    { background-color: #161e19; }
+.dark .bg-forest-100   { background-color: #1a2820; }
+.dark .bg-sage-50      { background-color: #161e19; }
+.dark .bg-sage-100     { background-color: #1a2820; }
+.dark .bg-harvest-50   { background-color: #1c1508; }
+.dark .bg-harvest-100  { background-color: #1e1a0e; }
+.dark .bg-clay-50      { background-color: #1e1414; }
+.dark .bg-clay-100     { background-color: #201414; }
+.dark .bg-parchment-50 { background-color: #161e19; }
+
+/* ── Border overrides ───────────── */
+.dark .border-forest-50  { border-color: #1a2820; }
+.dark .border-forest-100 { border-color: #1e2b22; }
+.dark .border-forest-200 { border-color: #2d4a38; }
+.dark .border-sage-100   { border-color: #1e2b22; }
+.dark .border-sage-200   { border-color: #2d4a38; }
+.dark .border-harvest-100{ border-color: #2a1e0a; }
+.dark .border-harvest-200{ border-color: #3a2810; }
+.dark .border-clay-100   { border-color: #2e1c1c; }
+.dark .border-clay-200   { border-color: #3e2020; }
+.dark .border-parchment-300 { border-color: #1e2b22; }
+
+/* ── Dividers ───────────────────── */
+.dark .divide-forest-50 > * + * { border-color: #1a2820; }
+.dark .divide-y > * + *         { border-color: #1e2b22; }
+
+/* ── Scrollbar ──────────────────── */
+::-webkit-scrollbar       { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #a6c4b5; border-radius: 999px; }
+.dark ::-webkit-scrollbar-thumb { background: #2d4a38; }
+
+/* ── iOS button reset ───────────── */
 input[type="submit"],
 button {
   -webkit-appearance: none;
 }
 
-/* Dark mode overrides */
-.dark body {
-  background-color: #0e1f17;
-  color: #e6eeea;
-}
-
-.dark .card,
-.dark .card-hover {
-  background-color: #132b1e;
-  border-color: #1e4730;
-}
-
-.dark .card-hover:hover {
-  background-color: #1a3828;
-}
-
-.dark .input-field {
-  background-color: #132b1e;
-  border-color: #2d5c40;
-  color: #e6eeea;
-}
-
-.dark header {
-  background-color: #0e1f17;
-  border-color: #1e4730;
-}
-
-.dark .btn-secondary {
-  background-color: #132b1e;
-  border-color: #2d5c40;
-  color: #a6c4b5;
-}
-
-.dark .btn-ghost {
-  color: #a6c4b5;
-}
-
-.dark .btn-ghost:hover {
-  background-color: #1a3828;
+/* ── Multilingual fonts ─────────── */
+:lang(hi), :lang(gu), :lang(bn) {
+  font-family: 'Noto Sans Devanagari', 'Plus Jakarta Sans', sans-serif;
 }
