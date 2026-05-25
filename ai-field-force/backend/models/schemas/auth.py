@@ -50,3 +50,19 @@ class TokenResponse(BaseModel):
 
 RegisterRequest = PasswordRegisterRequest
 LoginRequest = PasswordLoginRequest
+class Login2FAResponse(BaseModel):
+    """Returned by /auth/login/password when 2FA is required.
+
+    The frontend uses challenge_id to call /auth/2fa/verify with the code.
+    `dev_otp` is only populated in DEV_MODE to make demo logins frictionless.
+    """
+    requires_2fa: bool = True
+    challenge_id: str
+    email_masked: str
+    expires_in_seconds: int
+    dev_otp: Optional[str] = None
+
+
+class Verify2FARequest(BaseModel):
+    challenge_id: str
+    code: str = Field(..., min_length=4, max_length=10)

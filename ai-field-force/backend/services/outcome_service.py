@@ -4,6 +4,7 @@ from datetime import datetime
 from typing import Optional
 
 from sqlalchemy.orm import Session
+from sqlalchemy.orm.attributes import flag_modified
 
 from models.db.outcome import Outcome
 from models.db.farmers import FarmerRetailer
@@ -162,6 +163,27 @@ class OutcomeService:
             failed_count=failed,
             results=results,
         )
+    def _mark_competitor_activity(self, entity_id: str) -> None:
+        """Set the grower's competitor_activity flag based on rep observation.
+
+        Updates only the latest composite Signal so the next /visits/today call
+        reflects the rep's input. Existing inferred values are overwritten by
+        this observed truth; the `competitor_source` field tracks lineage.
+        """
+        latest = (
+            self.db.query(Signal)
+            .filter(Signal.entity_id == entity_id, Signal.signal_type == "composite")
+            .order_by(Signal.created_at.desc())
+            .first()
+        )
+        if not latest:
+            return
+        payload = dict(latest.payload or {})
+        payload["competitor_activity"] = True
+        payload["competitor_source"] = "rep_observed"
+        latest.payload = payload
+        flag_modified(latest, "payload")  # JSON column needs explicit dirty-flag
+        self.db.commit()
 
     def _upsert_outcome(
         self,
@@ -204,10 +226,21 @@ class OutcomeService:
             actions_taken=item.actions_taken + item.actions_accepted,
             notes=item.notes,
             signals_at_visit=raw_signals_snapshot,  # captured for audit / demo
+            competitor_seen=bool(getattr(item, "competitor_seen", False)),
         )
         self.db.add(outcome)
         self.db.commit()
-        self.db.refresh(outcome)
+        self.db.refresh(outcome)        
+
+
+        # If the rep observed a competitor product, update the grower's signal
+        # payload so future Today's Priorities scoring reflects real observed
+        # pressure (not the inferred proxy). Source marker lets the manager
+        # dashboard distinguish observed vs inferred competitor activity.
+        if outcome.competitor_seen:
+            self._mark_competitor_activity(item.entity_id)
+
+
         return outcome, False
 
     # ---------- legacy single-outcome path ----------
@@ -228,6 +261,7 @@ class OutcomeService:
                 actions_taken=outcome.actions_taken,
                 actions_accepted=outcome.actions_accepted,
                 notes=outcome.notes,
+                competitor_seen=outcome.competitor_seen,
                 recorded_at=outcome.recorded_at,
             )],
         )

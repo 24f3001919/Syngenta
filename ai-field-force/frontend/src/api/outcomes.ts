@@ -13,6 +13,7 @@ interface BackendOutcomeItem {
   actions_taken: string[];
   actions_accepted?: string[];
   notes?: string;
+  competitor_seen?: boolean;
   recorded_at: string;
 }
 
@@ -25,6 +26,7 @@ function toBackendOutcomeItem(o: OutcomeRecord): BackendOutcomeItem {
     actions_taken: o.actions_taken,
     actions_accepted: [],
     notes: o.notes,
+    competitor_seen: o.competitor_seen ?? false,
     recorded_at: o.visited_at,
   };
 }

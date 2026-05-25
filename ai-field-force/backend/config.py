@@ -10,8 +10,24 @@ OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 # JWT
 JWT_SECRET         = os.getenv("JWT_SECRET", "dev-secret-change-me")
 JWT_ALGORITHM      = os.getenv("JWT_ALGORITHM", "HS256")
-JWT_EXPIRE_MINUTES = int(os.getenv("JWT_EXPIRE_MINUTES", "10080"))
+# Access token: short-lived. Frontend silently refreshes via /auth/refresh.
+JWT_ACCESS_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_EXPIRE_MINUTES", "15"))
 
+# Refresh token: long-lived, stored in httpOnly cookie. Rotated on every refresh.
+JWT_REFRESH_EXPIRE_DAYS   = int(os.getenv("JWT_REFRESH_EXPIRE_DAYS", "30"))
+
+# Refresh token secret — different from access secret so a leaked access token
+# can't be exchanged for refresh tokens. Falls back to JWT_SECRET if not set.
+JWT_REFRESH_SECRET = os.getenv("JWT_REFRESH_SECRET", JWT_SECRET + "-refresh")
+
+# Legacy alias — kept until all callsites migrate to JWT_ACCESS_EXPIRE_MINUTES
+JWT_EXPIRE_MINUTES = JWT_ACCESS_EXPIRE_MINUTES
+
+# Cookie settings (set per-environment in production)
+REFRESH_COOKIE_NAME    = os.getenv("REFRESH_COOKIE_NAME", "refresh_token")
+REFRESH_COOKIE_DOMAIN  = os.getenv("REFRESH_COOKIE_DOMAIN", "")  # empty = same-origin
+REFRESH_COOKIE_SECURE  = os.getenv("REFRESH_COOKIE_SECURE", "false").lower() == "true"
+REFRESH_COOKIE_SAMESITE = os.getenv("REFRESH_COOKIE_SAMESITE", "lax")  # "none" for cross-origin
 # Dev mode
 DEV_MODE = os.getenv("DEV_MODE", "false").lower() == "true"
 
@@ -43,3 +59,22 @@ HEALTH_COVERAGE_WINDOW_DAYS = int(os.getenv("HEALTH_COVERAGE_WINDOW_DAYS", "30")
 HIGH_VPS_THRESHOLD          = int(os.getenv("HIGH_VPS_THRESHOLD", "80"))
 HEALTH_LABEL_GOOD           = int(os.getenv("HEALTH_LABEL_GOOD", "80"))
 HEALTH_LABEL_WATCH          = int(os.getenv("HEALTH_LABEL_WATCH", "60"))
+# ---------- Email OTP (2FA on login) ----------
+SMTP_HOST     = os.getenv("SMTP_HOST", "smtp.gmail.com")
+SMTP_PORT     = int(os.getenv("SMTP_PORT", "587"))
+SMTP_USER     = os.getenv("SMTP_USER", "")
+SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
+SMTP_FROM     = os.getenv("SMTP_FROM", "Kheti Compass <noreply@kheticompass.dev>")
+# Resend (used on Render where SMTP outbound is blocked)
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+RESEND_FROM    = os.getenv("RESEND_FROM", "Kheti Compass <onboarding@resend.dev>")
+
+EMAIL_OTP_DEMO_REDIRECT = os.getenv("EMAIL_OTP_DEMO_REDIRECT", "")
+
+OTP_EMAIL_LENGTH         = int(os.getenv("OTP_EMAIL_LENGTH", "6"))
+OTP_EMAIL_EXPIRY_SECONDS = int(os.getenv("OTP_EMAIL_EXPIRY_SECONDS", "300"))
+OTP_EMAIL_MAX_ATTEMPTS   = int(os.getenv("OTP_EMAIL_MAX_ATTEMPTS", "3"))
+
+TWO_FA_REQUIRED_ROLES = set(
+    (os.getenv("TWO_FA_REQUIRED_ROLES", "rep,manager,admin")).split(",")
+)

@@ -4,9 +4,12 @@ import {
   MOCK_MANAGER_AUTH,
 } from './mockData';
 import { adaptAuthResponse, adaptRep } from './adapters';
-import type { AuthResponse, OtpSendResponse, Rep } from '../types';
+import type { AuthResponse, OtpSendResponse, Rep, Login2FAResponse } from '../types';
 
-export async function loginWithPassword(identifier: string, password: string): Promise<AuthResponse> {
+export async function loginWithPassword(
+  identifier: string,
+  password: string,
+): Promise<AuthResponse | Login2FAResponse> {
   if (MOCK_MODE) {
     await mockDelay(null);
     if (identifier.includes('manager')) return MOCK_MANAGER_AUTH;
@@ -14,6 +17,12 @@ export async function loginWithPassword(identifier: string, password: string): P
     throw new Error('Invalid credentials. Use rep@syngenta.com / syngenta123');
   }
   const { data } = await client.post('/auth/login/password', { identifier, password });
+  // Backend may return either:
+  //   - Full TokenResponse (no 2FA needed)
+  //   - Login2FAResponse (2FA challenge — caller must call verify2fa)
+  if (data.requires_2fa) {
+    return data as Login2FAResponse;
+  }
   return adaptAuthResponse(data);
 }
 
@@ -69,4 +78,40 @@ export async function getMe(): Promise<Rep> {
   } catch (err) {
     throw new Error(getErrorMessage(err));
   }
+}
+// ─── Refresh token (called by AuthContext on app boot) ────────────────────────
+
+export async function refreshAccessToken(): Promise<AuthResponse | null> {
+  if (MOCK_MODE) return null;  // mock mode never refreshes
+  try {
+    const { data } = await client.post('/auth/refresh', {});
+    // Save the new access token immediately
+    if (data?.access_token) {
+      localStorage.setItem('access_token', data.access_token);
+    }
+    return adaptAuthResponse(data);
+  } catch {
+    return null;
+  }
+}
+
+// ─── Logout (revoke refresh token server-side + clear cookie) ─────────────────
+
+export async function logoutApi(): Promise<void> {
+  if (MOCK_MODE) return;
+  try {
+    await client.post('/auth/logout', {});
+  } catch {
+    // Always silent — logout proceeds client-side regardless
+  }
+}
+// ─── 2FA verification (email OTP after password) ──────────────────────────────
+
+export async function verify2fa(challenge_id: string, code: string): Promise<AuthResponse> {
+  if (MOCK_MODE) {
+    await mockDelay(null);
+    return MOCK_REP_AUTH;
+  }
+  const { data } = await client.post('/auth/2fa/verify', { challenge_id, code });
+  return adaptAuthResponse(data);
 }

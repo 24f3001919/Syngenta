@@ -3,10 +3,11 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLang, LANG_LABELS, LANG_FULL_NAMES, type Lang } from '../context/LangContext';
 import { useTheme } from '../context/ThemeContext';
-import { loginWithPassword, sendOtp, verifyOtp, loginWithGoogle } from '../api/auth';
+import { loginWithPassword, verify2fa, sendOtp, verifyOtp, loginWithGoogle } from '../api/auth';
+import { is2FAResponse } from '../types';
 import { getErrorMessage } from '../api/client';
 
-type LoginMode = 'password' | 'otp-phone' | 'otp-code';
+type LoginMode = 'password' | 'password-2fa' | 'otp-phone' | 'otp-code';
 
 declare global {
   interface Window {
@@ -40,6 +41,11 @@ export default function Login() {
   const [error, setError] = useState('');
   const [langOpen, setLangOpen] = useState(false);
   const langRef = useRef<HTMLDivElement>(null);
+  // 2FA challenge state (after password verified, before OTP entered)
+  const [twoFaChallengeId, setTwoFaChallengeId] = useState('');
+  const [twoFaEmailMasked, setTwoFaEmailMasked] = useState('');
+  const [twoFaCode, setTwoFaCode] = useState('');
+  const [twoFaDevOtp, setTwoFaDevOtp] = useState('');
 
   useEffect(() => {
     if (rep) {
@@ -82,6 +88,31 @@ export default function Login() {
     setLoading(true);
     try {
       const res = await loginWithPassword(identifier, password);
+      if (is2FAResponse(res)) {
+        // Password validated; need OTP next
+        setTwoFaChallengeId(res.challenge_id);
+        setTwoFaEmailMasked(res.email_masked);
+        setTwoFaDevOtp(res.dev_otp ?? '');
+        setTwoFaCode(res.dev_otp ?? '');  // pre-fill in dev mode for convenience
+        setMode('password-2fa');
+      } else {
+        // No 2FA required — straight to dashboard
+        login(res.access_token, res.rep);
+        navigate(res.rep.role === 'rep' ? '/today' : '/manager', { replace: true });
+      }
+    } catch (err) {
+      setError(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handle2faVerify(e: React.FormEvent) {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+    try {
+      const res = await verify2fa(twoFaChallengeId, twoFaCode);
       login(res.access_token, res.rep);
       navigate(res.rep.role === 'rep' ? '/today' : '/manager', { replace: true });
     } catch (err) {
@@ -89,6 +120,15 @@ export default function Login() {
     } finally {
       setLoading(false);
     }
+  }
+
+  function cancel2fa() {
+    setTwoFaChallengeId('');
+    setTwoFaEmailMasked('');
+    setTwoFaCode('');
+    setTwoFaDevOtp('');
+    setError('');
+    setMode('password');
   }
 
   async function handleSendOtp(e: React.FormEvent) {
@@ -269,6 +309,47 @@ export default function Login() {
               )}
               <button type="submit" disabled={loading} className="btn-primary w-full">
                 {loading ? t('auth.signing_in') : t('auth.signin')}
+              </button>
+            </form>
+          )}
+          {/* Password + 2FA — OTP entry */}
+          {mode === 'password-2fa' && (
+            <form onSubmit={handle2faVerify} className="space-y-4">
+              <div className="bg-forest-50 dark:bg-forest-900 rounded-xl px-4 py-3 flex items-center gap-3">
+                <svg className="w-4 h-4 text-forest-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M16 12a4 4 0 10-8 0v4a4 4 0 008 0V12zm-4-9C5.373 3 0 8.373 0 15s5.373 12 12 12 12-5.373 12-12S18.627 3 12 3z" />
+                </svg>
+                <div>
+                  <p className="text-xs font-medium text-forest-800 dark:text-forest-200">
+                    {t('auth.2fa.sent_to')} {twoFaEmailMasked}
+                  </p>
+                  <button type="button" onClick={cancel2fa} className="text-xs text-forest-600 underline">
+                    {t('auth.2fa.use_different')}
+                  </button>
+                </div>
+              </div>
+              <div>
+                <label className="label">{t('auth.2fa.enter_code')}</label>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  className="input-field text-center text-lg tracking-[0.4em] font-bold"
+                  placeholder="------"
+                  value={twoFaCode}
+                  onChange={(e) => setTwoFaCode(e.target.value.replace(/\D/g, ''))}
+                  required
+                  autoFocus
+                />
+                {twoFaDevOtp && (
+                  <p className="text-xs text-harvest-600 font-medium mt-1 bg-harvest-50 rounded-lg px-3 py-2">
+                    {t('auth.2fa.dev_hint')} {twoFaDevOtp}
+                  </p>
+                )}
+              </div>
+              {error && <p className="text-xs text-clay-600 font-medium bg-clay-50 rounded-xl px-4 py-3">{error}</p>}
+              <button type="submit" disabled={loading} className="btn-primary w-full">
+                {loading ? t('auth.2fa.verifying') : t('auth.2fa.verify')}
               </button>
             </form>
           )}
