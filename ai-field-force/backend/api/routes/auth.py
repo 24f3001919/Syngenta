@@ -13,6 +13,7 @@ from models.schemas.auth import (
     RepProfile,
     Login2FAResponse,
     Verify2FARequest,
+    VerifyEmailRequest,
 )
 from models.schemas.otp import (
     OtpSendRequest,
@@ -315,6 +316,45 @@ def link_phone_verify(
     otp_store.verify(phone, data.code)
     rep = service.link_phone_to_current(db, current, phone)
     return RepProfile.model_validate(rep)
+
+# ─── Email verification ────────────────────────────────────────────────────────
+
+@router.post("/verify-email", response_model=RepProfile,
+             summary="Consume a verification token and mark the email as verified")
+def verify_email(
+    data: VerifyEmailRequest,
+    db: Session = Depends(get_db),
+):
+    """
+    Public endpoint — no auth required (the token IS the credential).
+    Frontend hits this on /verify-email?token=... page load.
+    Returns the full rep profile with email_verified_at now populated.
+    Raises 400 if the token is invalid, already used, or expired.
+    """
+    identity = service.verify_email_token(db, data.token)
+    rep = db.query(Rep).filter(Rep.id == identity.rep_id).first()
+    if not rep:
+        raise HTTPException(status_code=404, detail="Account not found")
+    return RepProfile.model_validate(rep)
+
+
+@router.post("/resend-verification", status_code=200,
+             summary="Re-send the verification email for the current rep")
+def resend_verification(
+    db: Session = Depends(get_db),
+    current: Rep = Depends(get_current_rep),
+):
+    """
+    Auth-required. No-ops silently if already verified (returns 200 either way
+    so the frontend doesn't need to special-case it).
+    """
+    sent = service.send_verification_email_for_user(db, current)
+    if not sent:
+        raise HTTPException(
+            status_code=503,
+            detail="Could not send verification email. Please try again shortly.",
+        )
+    return {"status": "ok", "message": "Verification email sent"}
 
 
 # ─── Profile ──────────────────────────────────────────────────────────────────
