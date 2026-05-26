@@ -14,6 +14,7 @@ from models.db import auth_identity  as auth_identity_model
 from models.db import device         as device_model
 from models.db import weight_history as weight_history_model
 from models.db import refresh_token  as refresh_token_model
+from models.db import email_verification  as email_verification_model
 
 from models.db.rep import Rep
 from models.db.auth_identity import AuthIdentity
@@ -26,6 +27,8 @@ from db.seed_demo_outcomes import seed_demo_outcomes
 from db.seed_data import seed as seed_growers
 from models.db.signal import Signal as _Signal
 from models.db.refresh_token import RefreshToken
+from models.db.email_verification import EmailVerification
+
 
 app = FastAPI(title="Field Force Copilot", version="0.8.0")
 
@@ -61,6 +64,7 @@ def startup():
     WeightHistory.__table__.drop(bind=engine, checkfirst=True)
     Outcome.__table__.drop(bind=engine, checkfirst=True)
     Device.__table__.drop(bind=engine, checkfirst=True)
+    EmailVerification.__table__.drop(bind=engine, checkfirst=True)  # FK → auth_identities, drop first
     AuthIdentity.__table__.drop(bind=engine, checkfirst=True)
     Rep.__table__.drop(bind=engine, checkfirst=True)
     
