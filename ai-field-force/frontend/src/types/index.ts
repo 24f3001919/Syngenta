@@ -6,6 +6,7 @@ export interface Rep {
   email: string;
   phone?: string;
   role: 'rep' | 'manager' | 'admin';
+  email_verified_at?: string | null;
 }
 
 export interface AuthResponse {
