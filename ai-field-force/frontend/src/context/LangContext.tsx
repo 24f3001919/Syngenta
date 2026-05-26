@@ -291,6 +291,13 @@ const en: Record<string, string> = {
   'auth.2fa.dev_hint':       'DEV MODE — code:',
   'outcome.competitor_seen': 'Competitor product seen at this visit',
   'outcome.competitor_seen_hint': 'Flags this grower for competitive pressure on tomorrow\'s priority list',
+  'auth.verify.banner':        'Please verify your email —',
+  'auth.verify.resend':        'Resend',
+  'auth.verify.resent_success':'Verification email sent!',
+  'auth.verify.loading':       'Verifying your email…',
+  'auth.verify.success':       'Email verified! Redirecting…',
+  'auth.verify.error':         'Invalid or expired link. Request a new one.',
+  'auth.verify.return_to_login':'Return to login',
 }
 
 // ─── Hindi (from Kunal's PR, retained verbatim) ─────────────────────
@@ -497,6 +504,13 @@ const hi: Record<string, string> = {
   'auth.2fa.dev_hint':       'डेव मोड — कोड:',
   'outcome.competitor_seen': 'इस यात्रा में प्रतिस्पर्धी उत्पाद देखा गया',
   'outcome.competitor_seen_hint': 'कल की प्राथमिकता सूची के लिए इस किसान को प्रतिस्पर्धी दबाव के रूप में चिह्नित करता है',
+  'auth.verify.banner':         'कृपया अपना ईमेल सत्यापित करें —',
+  'auth.verify.resend':         'पुनः भेजें',
+  'auth.verify.resent_success': 'सत्यापन ईमेल भेजा गया!',
+  'auth.verify.loading':        'सत्यापित हो रहा है…',
+  'auth.verify.success':        'ईमेल सत्यापित! पुनर्निर्देशित हो रहे हैं…',
+  'auth.verify.error':          'अमान्य या समाप्त लिंक। नया ईमेल मांगें।',
+  'auth.verify.return_to_login':'लॉगिन पर वापस जाएं',
 }
 
 // ─── Gujarati ─────────────────────────────────────────────────────────
@@ -703,6 +717,13 @@ const gu: Record<string, string> = {
   'auth.2fa.dev_hint':       'ડેવ મોડ — કોડ:',
   'outcome.competitor_seen': 'આ મુલાકાતમાં હરીફ ઉત્પાદન જોવા મળ્યું',
   'outcome.competitor_seen_hint': 'આવતીકાલની પ્રાથમિકતા સૂચિ માટે આ ખેડૂતને હરીફ દબાવ માટે ચિહ્નિત કરે છે',
+  'auth.verify.banner':         'કૃपया તમારો ઈ-મેઈલ ચકાસો —',
+  'auth.verify.resend':         'ફરી મોકલો',
+  'auth.verify.resent_success': 'ચકાસણી ઈ-મેઈલ મોકલ્યો!',
+  'auth.verify.loading':        'ચકાસી રહ્યા છીએ…',
+  'auth.verify.success':        'ઈ-મેઈલ ચકાસાઈ ગયો! રીડાઇરેક્ટ થઈ રહ્યા છો…',
+  'auth.verify.error':          'અમાન્ય અથવા સમાપ્ત લિંક. નવો ઈ-મેઈલ માંગો.',
+  'auth.verify.return_to_login':'લૉગિનમાં પાછા જાઓ',
 }
 
 // ─── Bengali ──────────────────────────────────────────────────────────
@@ -909,5 +930,12 @@ const bn: Record<string, string> = {
   'auth.2fa.dev_hint':       'ডেভ মোড — কোড:',
   'outcome.competitor_seen': 'এই পরিদর্শনে প্রতিদ্বন্দ্বী পণ্য দেখা গেছে',
   'outcome.competitor_seen_hint': 'আগামীকালের অগ্রাধিকার তালিকার জন্য এই কৃষককে প্রতিযোগিতামূলক চাপ হিসাবে চিহ্নিত করে',
+  'auth.verify.banner':         'অনুগ্রহ করে আপনার ইমেইল যাচাই করুন —',
+  'auth.verify.resend':         'পুনরায় পাঠান',
+  'auth.verify.resent_success': 'যাচাই ইমেইল পাঠানো হয়েছে!',
+  'auth.verify.loading':        'যাচাই করা হচ্ছে…',
+  'auth.verify.success':        'ইমেইল যাচাই হয়েছে! পুনঃনির্দেশিত হচ্ছে…',
+  'auth.verify.error':          'অবৈধ বা মেয়াদোত্তীর্ণ লিঙ্ক। নতুন ইমেইল অনুরোধ করুন।',
+  'auth.verify.return_to_login':'লগইনে ফিরে যান',
 }
 const DICTIONARIES: Record<Lang, Record<string, string>> = { en, hi, gu, bn }
