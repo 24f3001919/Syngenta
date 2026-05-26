@@ -8,6 +8,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 // Public pages
 import Login from './pages/Login'
 import Register from './pages/Register'
+import VerifyEmail from './pages/VerifyEmail'
 // Rep pages
 import Today from './pages/rep/Today'
 import GrowerDetail from './pages/rep/GrowerDetail'
@@ -61,6 +62,8 @@ export default function App() {
                   <Route path="/manager/reps/:rep_id"       element={<RepDetail />} />
                   <Route path="/manager/weights"            element={<WeightsHistory />} />
                 </Route>
+                {/* Email verification — public, token is the credential */}
+                <Route path="/verify-email" element={<VerifyEmail />} />
                 {/* Catch-all */}
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
