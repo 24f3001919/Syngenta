@@ -45,7 +45,7 @@ from models.db.signal import Signal
 from models.db.outcome import Outcome
 from models.db.device import Device
 from models.db.weight_history import WeightHistory
-
+from models.db.email_verification import EmailVerification
 
 @pytest.fixture(scope="function")
 def test_db():
