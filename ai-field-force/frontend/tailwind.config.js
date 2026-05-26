@@ -1,5 +1,6 @@
-/** @type {import('tailwindcss').Config} */
+/* @type {import('tailwindcss').Config} */
 export default {
+  darkMode: 'class',
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
@@ -65,11 +66,21 @@ export default {
           400: '#d8b074',
           500: '#cc9651',
         },
+        // Dark mode surface tokens
+        dm: {
+          bg:      '#111714',
+          surface: '#161e19',
+          raised:  '#1a2820',
+          border:  '#1e2b22',
+          muted:   '#2d4a38',
+          subtle:  '#3a5545',
+        },
       },
       boxShadow: {
-        card: '0 1px 3px 0 rgba(14,58,39,0.06), 0 1px 2px -1px rgba(14,58,39,0.04)',
-        'card-hover': '0 4px 12px 0 rgba(14,58,39,0.10), 0 2px 4px -1px rgba(14,58,39,0.06)',
-        'card-lg': '0 8px 24px 0 rgba(14,58,39,0.10), 0 2px 8px -2px rgba(14,58,39,0.06)',
+        card:        '0 1px 3px 0 rgba(14,58,39,0.06), 0 1px 2px -1px rgba(14,58,39,0.04)',
+        'card-hover':'0 4px 12px 0 rgba(14,58,39,0.10), 0 2px 4px -1px rgba(14,58,39,0.06)',
+        'card-lg':   '0 8px 24px 0 rgba(14,58,39,0.10), 0 2px 8px -2px rgba(14,58,39,0.06)',
+        'dm-card':   '0 1px 2px 0 rgba(0,0,0,0.25)',
       },
       borderRadius: {
         '2xl': '16px',
