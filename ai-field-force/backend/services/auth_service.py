@@ -1,5 +1,6 @@
 import uuid
 import hashlib
+import logging
 from typing import Optional, Dict, Any, List, Tuple
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
@@ -22,7 +23,11 @@ from core.auth.security import (
 )
 from core.auth.email_otp.store import email_otp_store, Challenge
 from core.auth.email_otp.sender import email_sender, resolve_destination, mask_email
-from config import TWO_FA_REQUIRED_ROLES
+from core.auth.email_verification import store as email_verification_store
+from core.auth.email_verification.sender import send_verification_email
+from config import TWO_FA_REQUIRED_ROLES, FRONTEND_BASE_URL
+
+logger = logging.getLogger(__name__)
 
 class AuthService:
     # ---------- helpers ----------
@@ -82,6 +87,16 @@ class AuthService:
         ))
         db.commit()
         db.refresh(rep)
+
+        # Dispatch verification email — failure must NOT block registration
+        try:
+            self.send_verification_email_for_user(db, rep)
+        except Exception:
+            logger.warning(
+                "Could not dispatch verification email for new rep %s — continuing",
+                rep.primary_email,
+            )
+
         return rep
 
     def login_with_password(self, db: Session, identifier: str, password: str) -> Rep:
@@ -113,6 +128,57 @@ class AuthService:
             raise HTTPException(status_code=403, detail="Account disabled")
         return rep
     # ---------- 2FA email-OTP login ----------
+
+    # ---------- email verification ----------
+
+    def send_verification_email_for_user(self, db: Session, rep: Rep) -> bool:
+        """Issue a fresh verification token and email it to the rep.
+
+        Returns True if the email was dispatched successfully.
+        Callers should treat False as a soft failure — registration still succeeded.
+        """
+        identity = (
+            db.query(AuthIdentity)
+            .filter(
+                AuthIdentity.rep_id == rep.id,
+                AuthIdentity.provider == "password",
+            )
+            .first()
+        )
+        if not identity:
+            logger.warning("send_verification_email: no password identity for rep %s", rep.id)
+            return False
+
+        if identity.verified_at is not None:
+            # Already verified — nothing to do
+            return True
+
+        plain_token, _ = email_verification_store.issue(db, identity.id)
+        sent = send_verification_email(
+            to=rep.primary_email,
+            token=plain_token,
+            frontend_base_url=FRONTEND_BASE_URL,
+        )
+        if not sent:
+            logger.warning(
+                "send_verification_email: transport failure for rep %s (%s)",
+                rep.id, rep.primary_email,
+            )
+        return sent
+
+    def verify_email_token(self, db: Session, token_plain: str) -> AuthIdentity:
+        """Consume a verification token and mark the identity as verified.
+
+        Returns the now-verified AuthIdentity on success.
+        Raises 400 if the token is unknown, already used, or expired.
+        """
+        identity = email_verification_store.verify(db, token_plain)
+        if not identity:
+            raise HTTPException(
+                status_code=400,
+                detail="Invalid or expired verification link. Request a new one.",
+            )
+        return identity
 
     def role_requires_2fa(self, rep: Rep) -> bool:
         """Whether this rep's role is on the 2FA enforcement list."""
