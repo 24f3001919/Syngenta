@@ -40,6 +40,7 @@ interface BackendRep {
   is_active: boolean;
   created_at: string;
   identities?: BackendIdentity[];
+  email_verified_at?: string | null;
 }
 
 interface BackendAuthResponse {
@@ -58,6 +59,7 @@ export function adaptRep(b: BackendRep): Rep {
     email: b.primary_email ?? '',
     phone: phoneIdent?.identifier,
     role: b.role,
+    email_verified_at: b.email_verified_at ?? null,
   };
 }
 
