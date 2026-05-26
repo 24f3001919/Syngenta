@@ -78,3 +78,7 @@ OTP_EMAIL_MAX_ATTEMPTS   = int(os.getenv("OTP_EMAIL_MAX_ATTEMPTS", "3"))
 TWO_FA_REQUIRED_ROLES = set(
     (os.getenv("TWO_FA_REQUIRED_ROLES", "rep,manager,admin")).split(",")
 )
+
+# ---------- Email verification (registration) ----------
+# Set to https://syngenta-nu.vercel.app on Render after deploy.
+FRONTEND_BASE_URL = os.getenv("FRONTEND_BASE_URL", "http://localhost:5173")
