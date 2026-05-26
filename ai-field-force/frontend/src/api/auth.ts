@@ -105,10 +105,20 @@ export async function logoutApi(): Promise<void> {
     // Always silent — logout proceeds client-side regardless
   }
 }
-// ─── 2FA verification (email OTP after password) ──────────────────────────────
 
-export async function verify2fa(challenge_id: string, code: string): Promise<AuthResponse> {
-  if (MOCK_MODE) {
+// ─── Email verification ────────────────────────────────────────────────────────
+
+export async function verifyEmailToken(token: string): Promise<Rep> {
+  const { data } = await client.post('/auth/verify-email', { token });
+  return adaptRep(data);
+}
+
+export async function resendVerificationEmail(): Promise<void> {
+  await client.post('/auth/resend-verification', {});
+}
+
+// ─── 2FA verification (email OTP after password) ──────────────────────────────
+export async function verify2fa(challenge_id: string, code: string): Promise<AuthResponse> {  if (MOCK_MODE) {
     await mockDelay(null);
     return MOCK_REP_AUTH;
   }
