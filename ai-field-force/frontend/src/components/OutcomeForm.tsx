@@ -73,7 +73,7 @@ export default function OutcomeForm({ entityName, onSubmit, onCancel }: Props) {
     follow_up_needed: t('outcome.follow_up'),
     no_interest: t('outcome.no_interest'),
     complaint: t('outcome.complaint'),
-    complaint_resolved: t('outcome.complaint') + ' ✓',
+    complaint_resolved: t('outcome.complaint_resolved'),
   };
 
   function toggleAction(action: string) {
@@ -130,11 +130,11 @@ export default function OutcomeForm({ entityName, onSubmit, onCancel }: Props) {
               onClick={() => setOutcomeType(type)}
               className={`rounded-xl border px-3 py-2.5 text-xs font-semibold text-left transition-colors ${
                 outcomeType === type
-                  ? type === 'sale'
-                    ? 'bg-forest-700 border-forest-700 text-white'
-                    : type === 'complaint_resolved'
-                    ? 'bg-clay-600 border-clay-600 text-white'
-                    : 'bg-forest-50 border-forest-400 text-forest-800'
+                  ? type === 'complaint'
+                  ? 'bg-clay-600 border-clay-600 text-white'
+                  : type === 'complaint_resolved'
+                  ? 'bg-forest-700 border-forest-700 text-white'
+                  : 'bg-forest-50 border-forest-400 text-forest-800'
                   : 'bg-white border-sage-200 text-sage-600 hover:bg-sage-50'
               }`}
             >
